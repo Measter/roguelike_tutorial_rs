@@ -1,0 +1,6 @@
+[package]
+name = "week_01"
+version = "0.1.0"
+authors = ["Stuart Haidon <serayen.sh@gmail.com>"]
+
+[dependencies]
