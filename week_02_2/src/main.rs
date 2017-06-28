@@ -8,9 +8,11 @@ mod traits;
 use traits::{Renderable, Movable, Position};
 
 mod units;
+mod map;
 
 const SCREEN_WIDTH: u8 = 80;
 const SCREEN_HEIGHT: u8 = 50;
+const PANEL_HEIGHT: u8 = 5;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Direction {
@@ -53,16 +55,14 @@ fn main() {
 
     let mut player = units::Unit::new(1, 1, '@', tcod::colors::WHITE);
 
-    let mut npcs = vec![];
-    npcs.push(units::Unit::new(5, 5, '@', tcod::colors::YELLOW));
+    let map = map::Map::init();
 
     while !root.window_closed() {
         buffer_console.clear();
 
-        for unit in &npcs {
-            unit.render(&mut buffer_console);
-        }
-        
+        map.render_map(&mut buffer_console);
+        map.render_npcs(&mut buffer_console);
+
         player.render(&mut buffer_console);
 
         tcod::console::blit(&buffer_console, (0,0), (0,0), &mut root, (0,0), 1.0, 1.0);
