@@ -53,9 +53,16 @@ fn main() {
 
     let mut player = units::Unit::new(1, 1, '@', tcod::colors::WHITE);
 
+    let mut npcs = vec![];
+    npcs.push(units::Unit::new(5, 5, '@', tcod::colors::YELLOW));
+
     while !root.window_closed() {
         buffer_console.clear();
 
+        for unit in &npcs {
+            unit.render(&mut buffer_console);
+        }
+        
         player.render(&mut buffer_console);
 
         tcod::console::blit(&buffer_console, (0,0), (0,0), &mut root, (0,0), 1.0, 1.0);
