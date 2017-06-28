@@ -1,4 +1,5 @@
-use tcod::console::Console;
+use tcod::console::{Console, BackgroundFlag};
+use tcod::{Color};
 
 use Direction;
 
@@ -11,7 +12,12 @@ pub trait Position {
 }
 
 pub trait Renderable: Position {
-    fn render<T: Console>(&self, cons: &mut T);
+    fn get_color(&self) -> Color;
+    fn get_glyph(&self) -> char;
+    fn render<T: Console>(&self, cons: &mut T) {
+        cons.set_default_foreground(self.get_color());
+        cons.put_char(self.get_x() as i32, self.get_y() as i32, self.get_glyph(), BackgroundFlag::None);
+    }
 }
 
 pub trait Movable: Position {
