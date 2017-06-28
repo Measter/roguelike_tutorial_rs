@@ -1,7 +1,7 @@
 extern crate tcod;
 use tcod::RootConsole;
 use tcod::{Console};
-use tcod::console::{FontLayout, FontType};
+use tcod::console::{FontLayout, FontType, Offscreen};
 use tcod::input::{Key, KeyCode};
 
 mod traits;
@@ -47,13 +47,18 @@ fn main() {
                     .font_type(FontType::Greyscale)
                     .init();
 
+    let mut buffer_console = Offscreen::new(SCREEN_WIDTH as i32, SCREEN_HEIGHT as i32);
+
     root.set_default_foreground(tcod::colors::WHITE);
 
     let mut player = units::Unit::new(1, 1, '@');
 
     while !root.window_closed() {
-        root.clear();
-        player.render(&mut root);
+        buffer_console.clear();
+
+        player.render(&mut buffer_console);
+
+        tcod::console::blit(&buffer_console, (0,0), (0,0), &mut root, (0,0), 1.0, 1.0);
         root.flush();
 
         let key = root.wait_for_keypress(true);
