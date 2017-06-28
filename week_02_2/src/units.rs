@@ -1,4 +1,5 @@
 use tcod::console::{Console, BackgroundFlag};
+use tcod::colors::{Color};
 
 use traits::{Renderable, Movable, Position};
 use Direction;
@@ -8,14 +9,16 @@ pub struct Unit {
     x: u8,
     y: u8,
     glyph: char,
+    color: Color,
 }
 
 impl Unit {
-    pub fn new(x: u8, y: u8, glyph: char) -> Unit {
+    pub fn new(x: u8, y: u8, glyph: char, color: Color) -> Unit {
         Unit {
             x: x,
             y: y,
             glyph: glyph,
+            color: color,
         }
     }
 }
@@ -32,6 +35,7 @@ impl Position for Unit {
 
 impl Renderable for Unit {
     fn render<T: Console>(&self, cons: &mut T) {
+        cons.set_default_foreground(self.color);
         cons.put_char(self.x as i32, self.y as i32, self.glyph, BackgroundFlag::None);
     }
 }

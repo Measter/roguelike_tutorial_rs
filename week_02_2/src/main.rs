@@ -51,7 +51,7 @@ fn main() {
 
     root.set_default_foreground(tcod::colors::WHITE);
 
-    let mut player = units::Unit::new(1, 1, '@');
+    let mut player = units::Unit::new(1, 1, '@', tcod::colors::WHITE);
 
     while !root.window_closed() {
         buffer_console.clear();
