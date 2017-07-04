@@ -128,7 +128,7 @@ impl Map {
             Err(())
         } else {
             let Point{x, y} = pos;
-            Ok(self.tile_map[y as usize * MAP_HEIGHT as usize + x as usize].tile_type)
+            Ok(self.tile_map[y as usize * MAP_WIDTH as usize + x as usize].tile_type)
         }
     }
 
@@ -137,7 +137,7 @@ impl Map {
             Err(())
         } else {
             let Point{x,y} = pos;
-            self.tile_map[y as usize * MAP_HEIGHT as usize + x as usize].tile_type = new_tile;
+            self.tile_map[y as usize * MAP_WIDTH as usize + x as usize].tile_type = new_tile;
 
             Ok(())
         }
