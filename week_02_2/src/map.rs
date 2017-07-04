@@ -21,7 +21,7 @@ impl TileType {
     fn get_color(self) -> Color {
         match self {
             TileType::Floor => Color::new(50, 50, 150),
-            TileType::Wall => Color::new(0, 0, 100),
+            TileType::Wall => Color::new(240, 240, 240),
         }
     }
 
@@ -96,11 +96,15 @@ impl Map {
                 map.push( Tile::new(Point{x: x, y: y}, TileType::Floor) );
             }
         }
-        
-        Map {
+
+        let mut map = Map {
             tile_map: map,
             npcs: vec![Unit::new(Point{x: 5, y: 5}, '@', colors::YELLOW)],
-        }
+        };
+
+        map.set_tile_type(Point{x: 5, y: 3}, TileType::Wall).expect("Failed to set tile.");
+
+        map
     }
 
     pub fn render_map<T: Console>(&self, cons: &mut T) {
@@ -125,6 +129,17 @@ impl Map {
         } else {
             let Point{x, y} = pos;
             Ok(self.tile_map[y as usize * MAP_HEIGHT as usize + x as usize].tile_type)
+        }
+    }
+
+    fn set_tile_type(&mut self, pos: Point<i8>, new_tile: TileType) -> Result<(),()> {
+        if !self.point_in_map(pos) {
+            Err(())
+        } else {
+            let Point{x,y} = pos;
+            self.tile_map[y as usize * MAP_HEIGHT as usize + x as usize].tile_type = new_tile;
+
+            Ok(())
         }
     }
 }
