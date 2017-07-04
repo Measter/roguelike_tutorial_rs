@@ -117,8 +117,14 @@ impl Map {
         };
 
         let mut rng = rand::thread_rng();
-        let mut rooms = vec![];
+        let (rooms, player_start) = map.build_rooms(&mut rng);
+        map.build_coridoors(&rooms, &mut rng);
 
+        (map, player_start)
+    }
+
+    fn build_rooms(&mut self, rng: &mut rand::ThreadRng) -> (Vec<Rectangle>, Point<i8>) {
+        let mut rooms = vec![];
         let mut player_start = Point{x:0, y:0};
 
         for _ in 0..ROOM_MAX_COUNT {
@@ -134,7 +140,7 @@ impl Map {
             );
 
             if !rooms.iter().any(|r: &Rectangle| r.is_intersecting(&room)) {
-                map.create_room(&room).expect(ERR_MSG_ROOM);
+                self.create_room(&room).expect(ERR_MSG_ROOM);
 
                 if rooms.len() == 0 {
                     player_start = room.centre();
@@ -144,6 +150,10 @@ impl Map {
             }
         }
 
+        (rooms, player_start)
+    }
+
+    fn build_coridoors(&mut self, rooms: &Vec<Rectangle>, rng: &mut rand::ThreadRng) {
         for pair in rooms.windows(2) {
             let r1_centre = pair.get(0).expect(ERR_MSG_WINDOW).centre();
             let r2_centre = pair.get(1).expect(ERR_MSG_WINDOW).centre();
@@ -151,16 +161,14 @@ impl Map {
             // Decide whether to first tunnel horizontally or vertically.
             if rng.gen_weighted_bool(2) {
                 // Horizontal
-                map.create_h_tunnel(r1_centre.x..r2_centre.x, r1_centre.y).expect(ERR_MSG_TUNNEL);
-                map.create_v_tunnel(r2_centre.x, r1_centre.y..r2_centre.y).expect(ERR_MSG_TUNNEL);
+                self.create_h_tunnel(r1_centre.x..r2_centre.x, r1_centre.y).expect(ERR_MSG_TUNNEL);
+                self.create_v_tunnel(r2_centre.x, r1_centre.y..r2_centre.y).expect(ERR_MSG_TUNNEL);
             } else {
                 // Vertical
-                map.create_v_tunnel(r1_centre.x, r1_centre.y..r2_centre.y).expect(ERR_MSG_TUNNEL);
-                map.create_h_tunnel(r1_centre.x..r2_centre.x, r2_centre.y).expect(ERR_MSG_TUNNEL);
+                self.create_v_tunnel(r1_centre.x, r1_centre.y..r2_centre.y).expect(ERR_MSG_TUNNEL);
+                self.create_h_tunnel(r1_centre.x..r2_centre.x, r2_centre.y).expect(ERR_MSG_TUNNEL);
             }
         }
-
-        (map, player_start)
     }
 
     pub fn render_map<T: Console>(&self, cons: &mut T) {
