@@ -1,0 +1,9 @@
+[package]
+name = "week_03"
+version = "0.1.0"
+authors = ["Stuart Haidon <serayen.sh@gmail.com>"]
+
+[dependencies]
+tcod-sys = "4.0.1"
+tcod = "0.11.0"
+num = "0.1.39"
