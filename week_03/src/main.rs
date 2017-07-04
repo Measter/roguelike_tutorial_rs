@@ -1,4 +1,5 @@
 extern crate num;
+extern crate rand;
 
 extern crate tcod;
 use tcod::RootConsole;
@@ -11,6 +12,8 @@ use traits::{Renderable, Movable, Position};
 
 mod point;
 use point::Point;
+
+mod rectangle;
 
 mod units;
 mod map;
@@ -70,9 +73,10 @@ fn main() {
 
     root.set_default_foreground(tcod::colors::WHITE);
 
-    let mut player = units::Unit::new(Point{x: 1, y: 1}, '@', tcod::colors::WHITE);
+    let (map, start_coord) = map::Map::init();
 
-    let map = map::Map::init();
+    let mut player = units::Unit::new(start_coord, '@', tcod::colors::WHITE);
+
 
     while !root.window_closed() {
         buffer_console.clear();
