@@ -2,12 +2,16 @@ use tcod::console::{Console, BackgroundFlag};
 use tcod::{Color};
 
 use Direction;
+use point::Point;
 
 pub trait Position {
-    fn get_x(&self) -> u8;
-    fn get_y(&self) -> u8;
-    fn get_position(&self) -> (u8, u8) {
-        (self.get_x(), self.get_y())
+    fn get_x(&self) -> i8;
+    fn get_y(&self) -> i8;
+    fn get_position(&self) -> Point<i8> {
+        Point {
+            x: self.get_x(), 
+            y: self.get_y()
+        }
     }
 }
 
@@ -21,6 +25,6 @@ pub trait Renderable: Position {
 }
 
 pub trait Movable: Position {
-    fn move_to(&mut self, x: u8, y: u8);
+    fn move_to(&mut self, pos: Point<i8>);
     fn nudge(&mut self, dir: Direction);
 }

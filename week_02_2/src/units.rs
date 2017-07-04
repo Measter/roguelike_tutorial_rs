@@ -2,20 +2,19 @@ use tcod::colors::{Color};
 
 use traits::{Renderable, Movable, Position};
 use Direction;
+use point::Point;
 
 #[derive(Debug)]
 pub struct Unit {
-    x: u8,
-    y: u8,
+    position: Point<i8>,
     glyph: char,
     color: Color,
 }
 
 impl Unit {
-    pub fn new(x: u8, y: u8, glyph: char, color: Color) -> Unit {
+    pub fn new(pos: Point<i8>, glyph: char, color: Color) -> Unit {
         Unit {
-            x: x,
-            y: y,
+            position: pos,
             glyph: glyph,
             color: color,
         }
@@ -23,12 +22,12 @@ impl Unit {
 }
 
 impl Position for Unit {
-    fn get_x(&self) -> u8 {
-        self.x
+    fn get_x(&self) -> i8 {
+        self.position.x
     }
 
-    fn get_y(&self) -> u8 {
-        self.y
+    fn get_y(&self) -> i8 {
+        self.position.y
     }
 }
 
@@ -43,16 +42,10 @@ impl Renderable for Unit {
 }
 
 impl Movable for Unit {
-    fn move_to(&mut self, x: u8, y: u8){
-        self.x = x;
-        self.y = y;
+    fn move_to(&mut self, pos: Point<i8>){
+        self.position = pos;
     }
     fn nudge(&mut self, dir: Direction){
-        match dir {
-            Direction::Up =>     self.y -= 1,
-            Direction::Down =>   self.y += 1,
-            Direction::Left =>   self.x -= 1,
-            Direction::Right =>  self.x += 1,
-        }
+        self.position = self.position + dir.to_rel_point();
     }
 }

@@ -1,3 +1,5 @@
+extern crate num;
+
 extern crate tcod;
 use tcod::RootConsole;
 use tcod::{Console};
@@ -7,12 +9,15 @@ use tcod::input::{Key, KeyCode};
 mod traits;
 use traits::{Renderable, Movable, Position};
 
+mod point;
+use point::Point;
+
 mod units;
 mod map;
 
-const SCREEN_WIDTH: u8 = 80;
-const SCREEN_HEIGHT: u8 = 50;
-const PANEL_HEIGHT: u8 = 5;
+const SCREEN_WIDTH: i8 = 80;
+const SCREEN_HEIGHT: i8 = 50;
+const PANEL_HEIGHT: i8 = 5;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Direction {
@@ -21,6 +26,18 @@ pub enum Direction {
     Left,
     Right
 }
+
+impl Direction {
+    fn to_rel_point(self) -> Point<i8> {
+        match self {
+            Direction::Up       => Point::new(0, -1),
+            Direction::Down     => Point::new(0, 1),
+            Direction::Left     => Point::new(-1, 0),
+            Direction::Right    => Point::new(1, 0),
+        }
+    }
+}
+
 
 #[derive(Debug)]
 enum KeyType {
@@ -53,7 +70,7 @@ fn main() {
 
     root.set_default_foreground(tcod::colors::WHITE);
 
-    let mut player = units::Unit::new(1, 1, '@', tcod::colors::WHITE);
+    let mut player = units::Unit::new(Point{x: 1, y: 1}, '@', tcod::colors::WHITE);
 
     let map = map::Map::init();
 
@@ -72,13 +89,13 @@ fn main() {
 
         match key_type(&key) {
             KeyType::Movement(dir)  => {
-                let (x,y) = player.get_position();
-                match dir {
-                    Direction::Up    if y > 0                 => player.nudge(dir),
-                    Direction::Down  if y < SCREEN_HEIGHT-1   => player.nudge(dir),
-                    Direction::Left  if x > 0                 => player.nudge(dir),
-                    Direction::Right if x < SCREEN_WIDTH-1    => player.nudge(dir),
-                    _ => {}
+                let pos = player.get_position();
+                let new_pos = pos + dir.to_rel_point();
+
+                if let Ok(tile) = map.get_tile_type(new_pos) {
+                    if !tile.blocks_move() {
+                        player.move_to(new_pos);
+                    }
                 }
             },
             KeyType::Exit           => break,

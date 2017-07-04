@@ -6,8 +6,10 @@ use traits::{Position, Renderable};
 use units::Unit;
 use {SCREEN_HEIGHT, SCREEN_WIDTH, PANEL_HEIGHT};
 
-const MAP_WIDTH: u8 = SCREEN_WIDTH;
-const MAP_HEIGHT: u8 = SCREEN_HEIGHT - PANEL_HEIGHT;
+use point::Point;
+
+const MAP_WIDTH: i8 = SCREEN_WIDTH;
+const MAP_HEIGHT: i8 = SCREEN_HEIGHT - PANEL_HEIGHT;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum TileType {
@@ -29,22 +31,35 @@ impl TileType {
             TileType::Wall => '#',
         }
     }
+
+    pub fn blocks_move(self) -> bool {
+        match self {
+            TileType::Floor => false,
+            TileType::Wall => true,
+        }
+    }
+
+    pub fn blocks_sight(self) -> bool {
+        match self {
+            TileType::Floor => false,
+            TileType::Wall => true,
+        }
+    }
 }
 
 #[derive(Debug)]
 pub struct Tile {
-    x: u8,
-    y: u8,
+    position: Point<i8>,
     tile_type: TileType,
 }
 
 impl Position for Tile {
-    fn get_x(&self) -> u8 {
-        self.x
+    fn get_x(&self) -> i8 {
+        self.position.x
     }
 
-    fn get_y(&self) -> u8 {
-        self.y
+    fn get_y(&self) -> i8 {
+        self.position.y
     }
 }
 
@@ -58,10 +73,9 @@ impl Renderable for Tile {
 }
 
 impl Tile {
-    pub fn new((x, y): (u8, u8), tile_type: TileType) -> Tile {
+    pub fn new(pos: Point<i8>, tile_type: TileType) -> Tile {
         Tile{
-            x: x,
-            y: y,
+            position: pos,
             tile_type: tile_type
         }
     }
@@ -79,13 +93,13 @@ impl Map {
         let mut map = vec![];
         for y in 0..MAP_HEIGHT {
             for x in 0..MAP_WIDTH {
-                map.push( Tile::new((x,y), TileType::Floor) );
+                map.push( Tile::new(Point{x: x, y: y}, TileType::Floor) );
             }
         }
         
         Map {
             tile_map: map,
-            npcs: vec![Unit::new(5, 5, '@', colors::YELLOW)],
+            npcs: vec![Unit::new(Point{x: 5, y: 5}, '@', colors::YELLOW)],
         }
     }
 
@@ -101,10 +115,15 @@ impl Map {
         }
     }
 
-    pub fn get_tile_type(&self, (x,y): (u8, u8)) -> Result<TileType,()> {
-        if x >= MAP_WIDTH || y >= MAP_HEIGHT {
+    pub fn point_in_map(&self, Point{x,y}: Point<i8>) -> bool {
+        x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT
+    }
+
+    pub fn get_tile_type(&self, pos: Point<i8>) -> Result<TileType,()> {
+        if !self.point_in_map(pos) {
             Err(())
         } else {
+            let Point{x, y} = pos;
             Ok(self.tile_map[y as usize * MAP_HEIGHT as usize + x as usize].tile_type)
         }
     }
