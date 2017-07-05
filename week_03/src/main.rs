@@ -46,6 +46,7 @@ impl Direction {
 enum KeyType {
     Movement(Direction),
     Exit,
+    NewGame,
     Other,
 }
 
@@ -56,6 +57,7 @@ fn key_type(key: &Key) -> KeyType {
         KeyCode::Up     =>  KeyType::Movement(Direction::Up),
         KeyCode::Down   =>  KeyType::Movement(Direction::Down),
         KeyCode::Escape =>  KeyType::Exit,
+        KeyCode::F1     =>  KeyType::NewGame,
         _ => KeyType::Other,
     }
 }
@@ -73,7 +75,7 @@ fn main() {
 
     root.set_default_foreground(tcod::colors::WHITE);
 
-    let (map, start_coord) = map::Map::init();
+    let (mut map, start_coord) = map::Map::init();
 
     let mut player = units::Unit::new(start_coord, '@', tcod::colors::WHITE);
 
@@ -103,6 +105,11 @@ fn main() {
                 }
             },
             KeyType::Exit           => break,
+            KeyType::NewGame        => {
+                let (new_map, start_coord) = map::Map::init();
+                map = new_map;
+                player.move_to(start_coord);
+            }
             KeyType::Other          => println!("{:?}", key),
         }
     }
