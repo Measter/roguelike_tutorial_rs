@@ -1,4 +1,5 @@
 use std::ops::Range;
+use std::collections::HashSet;
 
 use rand;
 use rand::Rng;
@@ -23,7 +24,7 @@ const ROOM_MAX_COUNT: u8 = 30;
 
 const ERR_MSG_TUNNEL: &str = "Failed to create tunnel.";
 const ERR_MSG_ROOM: &str = "Failed to create room.";
-const ERR_MSG_WINDOW: &str = "Should have two rooms.";
+const ERR_MSG_ROOM_CMP: &str = "Error comparing rooms.";
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum TileType {
@@ -154,19 +155,33 @@ impl Map {
     }
 
     fn build_coridoors(&mut self, rooms: &Vec<Rectangle>, rng: &mut rand::ThreadRng) {
-        for pair in rooms.windows(2) {
-            let r1_centre = pair.get(0).expect(ERR_MSG_WINDOW).centre();
-            let r2_centre = pair.get(1).expect(ERR_MSG_WINDOW).centre();
+        let mut sorted_rooms: Vec<_> = rooms.iter().map(|r| r).collect();
+        let mut connected_rooms = HashSet::new();
+        
 
-            // Decide whether to first tunnel horizontally or vertically.
-            if rng.gen_weighted_bool(2) {
-                // Horizontal
-                self.create_h_tunnel(r1_centre.x..r2_centre.x, r1_centre.y).expect(ERR_MSG_TUNNEL);
-                self.create_v_tunnel(r2_centre.x, r1_centre.y..r2_centre.y).expect(ERR_MSG_TUNNEL);
-            } else {
-                // Vertical
-                self.create_v_tunnel(r1_centre.x, r1_centre.y..r2_centre.y).expect(ERR_MSG_TUNNEL);
-                self.create_h_tunnel(r1_centre.x..r2_centre.x, r2_centre.y).expect(ERR_MSG_TUNNEL);
+        for room in rooms {
+            sorted_rooms.sort_by(|a,b| (room.centre() - a.centre()).sqr_radius().partial_cmp(&(room.centre() - b.centre()).sqr_radius()).expect(ERR_MSG_ROOM_CMP) );
+
+            for next in sorted_rooms.iter().skip(1).take(2) {
+                if connected_rooms.contains(&(*next, room)) {
+                    continue;
+                }
+
+                connected_rooms.insert((room, *next));
+
+                let r1_centre = room.centre();
+                let r2_centre = next.centre();
+
+                // Decide whether to first tunnel horizontally or vertically.
+                if rng.gen_weighted_bool(2) {
+                    // Horizontal
+                    self.create_h_tunnel(r1_centre.x..r2_centre.x, r1_centre.y).expect(ERR_MSG_TUNNEL);
+                    self.create_v_tunnel(r2_centre.x, r1_centre.y..r2_centre.y).expect(ERR_MSG_TUNNEL);
+                } else {
+                    // Vertical
+                    self.create_v_tunnel(r1_centre.x, r1_centre.y..r2_centre.y).expect(ERR_MSG_TUNNEL);
+                    self.create_h_tunnel(r1_centre.x..r2_centre.x, r2_centre.y).expect(ERR_MSG_TUNNEL);
+                }
             }
         }
     }

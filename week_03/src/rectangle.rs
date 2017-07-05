@@ -1,6 +1,6 @@
 use point::Point;
 
-#[derive(Debug)]
+#[derive(Debug, Hash, Eq, PartialEq)]
 pub struct Rectangle {
     pub top_left: Point<i8>,
     pub bottom_right: Point<i8>,
