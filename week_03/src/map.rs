@@ -162,7 +162,7 @@ impl Map {
         for room in rooms {
             sorted_rooms.sort_by(|a,b| (room.centre() - a.centre()).sqr_radius().partial_cmp(&(room.centre() - b.centre()).sqr_radius()).expect(ERR_MSG_ROOM_CMP) );
 
-            for next in sorted_rooms.iter().skip(1).take(2) {
+            for next in sorted_rooms.iter().skip(1).take(3) {
                 if connected_rooms.contains(&(*next, room)) {
                     continue;
                 }
