@@ -18,9 +18,9 @@ mod rectangle;
 mod units;
 mod map;
 
-const SCREEN_WIDTH: i8 = 80;
-const SCREEN_HEIGHT: i8 = 50;
-const PANEL_HEIGHT: i8 = 5;
+const SCREEN_WIDTH: u8 = 80;
+const SCREEN_HEIGHT: u8 = 50;
+const PANEL_HEIGHT: u8 = 5;
 
 const FOV_RADIUS: u8 = 10;
 
@@ -33,7 +33,7 @@ pub enum Direction {
 }
 
 impl Direction {
-    fn to_rel_point(self) -> Point<i8> {
+    fn to_rel_point(self) -> Point<i16> {
         match self {
             Direction::Up       => Point::new(0, -1),
             Direction::Down     => Point::new(0, 1),
@@ -73,7 +73,7 @@ fn main() {
                     .font_type(FontType::Greyscale)
                     .init();
 
-    let mut buffer_console = Offscreen::new(SCREEN_WIDTH as i32, SCREEN_HEIGHT as i32);
+    let mut buffer_console = Offscreen::new(map::MAP_MAX_WIDTH as i32, map::MAP_MAX_HEIGHT as i32);
 
     root.set_default_foreground(tcod::colors::WHITE);
 
@@ -85,13 +85,25 @@ fn main() {
 
     while !root.window_closed() {
         buffer_console.clear();
+        root.clear();
+
+        // With the scrolling map, we need to try to centre the player on the screen
+        // without going past the bounds of the buffer.
+        let (map_width, map_height) = map.get_map_size();
+        let draw_left = player.get_x() - SCREEN_WIDTH as i16 / 2;
+        let draw_top = player.get_y() - SCREEN_HEIGHT as i16 / 2;
+
+        let mut view_port = rectangle::Rectangle::new(Point{x: draw_left, y: draw_top}, (SCREEN_WIDTH, SCREEN_HEIGHT));
+        view_port.clamp_to((0,0), (map_width as i16, map_height as i16));
+
+        println!("{:?}", view_port);
 
         map.render_map(&mut buffer_console);
         map.render_npcs(&mut buffer_console);
 
         player.render(&mut buffer_console);
 
-        tcod::console::blit(&buffer_console, (0,0), (0,0), &mut root, (0,0), 1.0, 1.0);
+        tcod::console::blit(&buffer_console, (view_port.top_left.x as i32, view_port.top_left.y as i32), (SCREEN_WIDTH as i32, SCREEN_HEIGHT as i32), &mut root, (0,0), 1.0, 1.0);
         root.flush();
 
         let key = root.wait_for_keypress(true);
@@ -113,6 +125,7 @@ fn main() {
                 let (new_map, start_coord) = map::Map::init();
                 map = new_map;
                 player.move_to(start_coord);
+                map.update_fov(start_coord, FOV_RADIUS);
             }
             KeyType::Other          => println!("{:?}", key),
         }

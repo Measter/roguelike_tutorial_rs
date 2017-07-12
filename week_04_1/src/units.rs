@@ -6,13 +6,13 @@ use point::Point;
 
 #[derive(Debug)]
 pub struct Unit {
-    position: Point<i8>,
+    position: Point<i16>,
     glyph: char,
     color: Color,
 }
 
 impl Unit {
-    pub fn new(pos: Point<i8>, glyph: char, color: Color) -> Unit {
+    pub fn new(pos: Point<i16>, glyph: char, color: Color) -> Unit {
         Unit {
             position: pos,
             glyph: glyph,
@@ -22,11 +22,11 @@ impl Unit {
 }
 
 impl Position for Unit {
-    fn get_x(&self) -> i8 {
+    fn get_x(&self) -> i16 {
         self.position.x
     }
 
-    fn get_y(&self) -> i8 {
+    fn get_y(&self) -> i16 {
         self.position.y
     }
 }
@@ -42,7 +42,7 @@ impl Renderable for Unit {
 }
 
 impl Movable for Unit {
-    fn move_to(&mut self, pos: Point<i8>){
+    fn move_to(&mut self, pos: Point<i16>){
         self.position = pos;
     }
     fn nudge(&mut self, dir: Direction){

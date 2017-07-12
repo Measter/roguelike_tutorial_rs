@@ -5,9 +5,9 @@ use Direction;
 use point::Point;
 
 pub trait Position {
-    fn get_x(&self) -> i8;
-    fn get_y(&self) -> i8;
-    fn get_position(&self) -> Point<i8> {
+    fn get_x(&self) -> i16;
+    fn get_y(&self) -> i16;
+    fn get_position(&self) -> Point<i16> {
         Point {
             x: self.get_x(), 
             y: self.get_y()
@@ -25,6 +25,6 @@ pub trait Renderable: Position {
 }
 
 pub trait Movable: Position {
-    fn move_to(&mut self, pos: Point<i8>);
+    fn move_to(&mut self, pos: Point<i16>);
     fn nudge(&mut self, dir: Direction);
 }

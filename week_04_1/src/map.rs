@@ -1,3 +1,4 @@
+use std;
 use std::ops::Range;
 use std::collections::HashSet;
 
@@ -11,13 +12,17 @@ use tcod::colors;
 
 use traits::{Position, Renderable};
 use units::Unit;
-use {SCREEN_HEIGHT, SCREEN_WIDTH, PANEL_HEIGHT};
 
 use point::Point;
 use rectangle::Rectangle;
 
-const MAP_WIDTH: i8 = SCREEN_WIDTH;
-const MAP_HEIGHT: i8 = SCREEN_HEIGHT - PANEL_HEIGHT;
+use SCREEN_WIDTH;
+use SCREEN_HEIGHT;
+
+const MAP_MIN_WIDTH: u8 = SCREEN_WIDTH;
+const MAP_MIN_HEIGHT: u8 = SCREEN_HEIGHT;
+pub const MAP_MAX_WIDTH: u8 = std::u8::MAX;
+pub const MAP_MAX_HEIGHT: u8 = std::u8::MAX;
 
 const ROOM_MAX_SIZE: u8 = 10;
 const ROOM_MIN_SIZE: u8 = 6;
@@ -72,18 +77,18 @@ impl TileType {
 
 #[derive(Debug)]
 pub struct Tile {
-    position: Point<i8>,
+    position: Point<i16>,
     tile_type: TileType,
     is_explored: bool,
     is_visible: bool,
 }
 
 impl Position for Tile {
-    fn get_x(&self) -> i8 {
+    fn get_x(&self) -> i16 {
         self.position.x
     }
 
-    fn get_y(&self) -> i8 {
+    fn get_y(&self) -> i16 {
         self.position.y
     }
 }
@@ -105,7 +110,7 @@ impl Renderable for Tile {
 }
 
 impl Tile {
-    pub fn new(pos: Point<i8>, tile_type: TileType) -> Tile {
+    pub fn new(pos: Point<i16>, tile_type: TileType) -> Tile {
         Tile{
             position: pos,
             tile_type: tile_type,
@@ -117,38 +122,46 @@ impl Tile {
 
 
 pub struct Map {
+    width: u8,
+    height: u8,
     tile_map: Vec<Tile>,
     fov_map: tcod::map::Map,
     npcs: Vec<Unit>,
 }
 
 impl Map {
-    pub fn init() -> (Map, Point<i8>) {
+    pub fn init() -> (Map, Point<i16>) {
+        let mut rng = rand::thread_rng();
+
+        let map_width = rng.gen_range(MAP_MIN_WIDTH, MAP_MAX_WIDTH);
+        let map_height = rng.gen_range(MAP_MIN_HEIGHT, MAP_MAX_HEIGHT);
+
         let mut map = vec![];
-        for y in 0..MAP_HEIGHT {
-            for x in 0..MAP_WIDTH {
-                map.push( Tile::new(Point{x: x, y: y}, TileType::Wall) );
+        for y in 0..map_height {
+            for x in 0..map_width {
+                map.push( Tile::new(Point{x: x as i16, y: y as i16}, TileType::Wall) );
             }
         }
 
         let mut map = Map {
+            width: map_width,
+            height: map_height,
             tile_map: map,
-            fov_map: tcod::map::Map::new(MAP_WIDTH as i32, MAP_HEIGHT as i32),
-            npcs: vec![Unit::new(Point{x: 52, y: 18}, '@', colors::YELLOW)],
+            fov_map: tcod::map::Map::new(map_width as i32, map_height as i32),
+            npcs: vec![],
         };
 
         // Set all tiles to be not walkable, not transparent.
         // We'll be setting these in the build_rooms and build_coridoors methods.
         map.fov_map.clear(false, false);
 
-        let mut rng = rand::thread_rng();
         let (rooms, player_start) = map.build_rooms(&mut rng);
         map.build_coridoors(&rooms, &mut rng);
 
         (map, player_start)
     }
 
-    fn build_rooms(&mut self, rng: &mut rand::ThreadRng) -> (Vec<Rectangle>, Point<i8>) {
+    fn build_rooms(&mut self, rng: &mut rand::ThreadRng) -> (Vec<Rectangle>, Point<i16>) {
         let mut rooms = vec![];
         let mut player_start = Point{x:0, y:0};
 
@@ -158,8 +171,8 @@ impl Map {
 
             let room = Rectangle::new(
                 Point {
-                    x: rng.gen_range(0, MAP_WIDTH - width as i8 - 1),
-                    y: rng.gen_range(0, MAP_HEIGHT - height as i8 - 1)
+                    x: rng.gen_range(0, self.width as i16 - width as i16 - 1),
+                    y: rng.gen_range(0, self.height as i16 - height as i16 - 1)
                 },
                 (width, height)
             );
@@ -224,20 +237,20 @@ impl Map {
         }
     }
 
-    pub fn point_in_map(&self, Point{x,y}: Point<i8>) -> bool {
-        x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT
+    pub fn point_in_map(&self, Point{x,y}: Point<i16>) -> bool {
+        x >= 0 && x < self.width as i16 && y >= 0 && y < self.height as i16
     }
 
-    pub fn get_tile_type(&self, pos: Point<i8>) -> Result<TileType,()> {
+    pub fn get_tile_type(&self, pos: Point<i16>) -> Result<TileType,()> {
         if !self.point_in_map(pos) {
             Err(())
         } else {
             let Point{x, y} = pos;
-            Ok(self.tile_map[y as usize * MAP_WIDTH as usize + x as usize].tile_type)
+            Ok(self.tile_map[y as usize * self.width as usize + x as usize].tile_type)
         }
     }
 
-    pub fn update_fov(&mut self, Point{x, y}: Point<i8>, light_radius: u8) {
+    pub fn update_fov(&mut self, Point{x, y}: Point<i16>, light_radius: u8) {
         self.fov_map.compute_fov(x as i32, y as i32, light_radius as i32, true, tcod::map::FovAlgorithm::Permissive0);
 
         // I've opted to update the tile map here, because it doesn't make sense that
@@ -253,7 +266,11 @@ impl Map {
         }
     }
 
-    fn create_v_tunnel(&mut self, x: i8, y_r: Range<i8>) -> Result<(),()> {
+    pub fn get_map_size(&self) -> (u8, u8) {
+        (self.width, self.height)
+    }
+
+    fn create_v_tunnel(&mut self, x: i16, y_r: Range<i16>) -> Result<(),()> {
         // Need to handle the case where start > end.
         // I decided to do it here to make it easier to call the function.
         // Because this is a half-open range, we need to adjust the start
@@ -273,7 +290,7 @@ impl Map {
         Ok(())
     }
 
-    fn create_h_tunnel(&mut self, x_r: Range<i8>, y: i8) -> Result<(),()> {
+    fn create_h_tunnel(&mut self, x_r: Range<i16>, y: i16) -> Result<(),()> {
         // Need to handle the case where start > end.
         // I decided to do it here to make it easier to call the function.
         // Because this is a half-open range, we need to adjust the start
@@ -305,12 +322,12 @@ impl Map {
         Ok(())
     }
 
-    fn set_tile_type(&mut self, pos: Point<i8>, new_tile: TileType) -> Result<(),()> {
+    fn set_tile_type(&mut self, pos: Point<i16>, new_tile: TileType) -> Result<(),()> {
         if !self.point_in_map(pos) {
             Err(())
         } else {
             let Point{x,y} = pos;
-            self.tile_map[y as usize * MAP_WIDTH as usize + x as usize].tile_type = new_tile;
+            self.tile_map[y as usize * self.width as usize + x as usize].tile_type = new_tile;
 
             Ok(())
         }
