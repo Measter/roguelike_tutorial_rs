@@ -22,6 +22,8 @@ const SCREEN_WIDTH: i8 = 80;
 const SCREEN_HEIGHT: i8 = 50;
 const PANEL_HEIGHT: i8 = 5;
 
+const FOV_RADIUS: u8 = 10;
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Direction {
     Up,
@@ -79,6 +81,7 @@ fn main() {
 
     let mut player = units::Unit::new(start_coord, '@', tcod::colors::WHITE);
 
+    map.update_fov(player.get_position(), FOV_RADIUS);
 
     while !root.window_closed() {
         buffer_console.clear();
@@ -101,6 +104,7 @@ fn main() {
                 if let Ok(tile) = map.get_tile_type(new_pos) {
                     if !tile.blocks_move() {
                         player.move_to(new_pos);
+                        map.update_fov(player.get_position(), FOV_RADIUS);
                     }
                 }
             },

@@ -4,6 +4,7 @@ use std::collections::HashSet;
 use rand;
 use rand::Rng;
 
+use tcod;
 use tcod::console::Console;
 use tcod::Color;
 use tcod::colors;
@@ -33,10 +34,17 @@ pub enum TileType {
 }
 
 impl TileType {
-    fn get_color(self) -> Color {
+    fn get_color_not_visible(self) -> Color {
         match self {
             TileType::Floor => Color::new(50, 50, 150),
-            TileType::Wall => Color::new(240, 240, 240),
+            TileType::Wall => Color::new(0, 0, 100),
+        }
+    }
+
+    fn get_color_visible(self) -> Color {
+        match self {
+            TileType::Floor => Color::new(200, 180, 50),
+            TileType::Wall => Color::new(130, 110, 50),
         }
     }
 
@@ -66,6 +74,8 @@ impl TileType {
 pub struct Tile {
     position: Point<i8>,
     tile_type: TileType,
+    is_explored: bool,
+    is_visible: bool,
 }
 
 impl Position for Tile {
@@ -80,7 +90,14 @@ impl Position for Tile {
 
 impl Renderable for Tile {
     fn get_color(&self) -> Color {
-        self.tile_type.get_color()
+        if !self.is_explored {
+            tcod::colors::BLACK
+        } else {        
+            match self.is_visible {
+                true => self.tile_type.get_color_visible(),
+                false => self.tile_type.get_color_not_visible(),
+            }
+        }
     }
     fn get_glyph(&self) -> char {
         self.tile_type.get_glyph()
@@ -91,15 +108,17 @@ impl Tile {
     pub fn new(pos: Point<i8>, tile_type: TileType) -> Tile {
         Tile{
             position: pos,
-            tile_type: tile_type
+            tile_type: tile_type,
+            is_explored: false,
+            is_visible: false,
         }
     }
 }
 
 
-#[derive(Debug)]
 pub struct Map {
     tile_map: Vec<Tile>,
+    fov_map: tcod::map::Map,
     npcs: Vec<Unit>,
 }
 
@@ -114,8 +133,13 @@ impl Map {
 
         let mut map = Map {
             tile_map: map,
+            fov_map: tcod::map::Map::new(MAP_WIDTH as i32, MAP_HEIGHT as i32),
             npcs: vec![Unit::new(Point{x: 52, y: 18}, '@', colors::YELLOW)],
         };
+
+        // Set all tiles to be not walkable, not transparent.
+        // We'll be setting these in the build_rooms and build_coridoors methods.
+        map.fov_map.clear(false, false);
 
         let mut rng = rand::thread_rng();
         let (rooms, player_start) = map.build_rooms(&mut rng);
@@ -194,7 +218,9 @@ impl Map {
 
     pub fn render_npcs<T: Console>(&self, cons: &mut T) {
         for unit in self.npcs.iter() {
-            unit.render(cons);
+            if self.fov_map.is_in_fov(unit.get_x() as i32, unit.get_y() as i32) {
+                unit.render(cons);
+            }
         }
     }
 
@@ -208,6 +234,22 @@ impl Map {
         } else {
             let Point{x, y} = pos;
             Ok(self.tile_map[y as usize * MAP_WIDTH as usize + x as usize].tile_type)
+        }
+    }
+
+    pub fn update_fov(&mut self, Point{x, y}: Point<i8>, light_radius: u8) {
+        self.fov_map.compute_fov(x as i32, y as i32, light_radius as i32, true, tcod::map::FovAlgorithm::Permissive0);
+
+        // I've opted to update the tile map here, because it doesn't make sense that
+        // a function for rendering should need to mutate the object.
+        // It does make this function more expensive to run, but it won't be run
+        // too frequently.
+        for tile in self.tile_map.iter_mut() {
+            tile.is_visible = self.fov_map.is_in_fov(tile.get_x() as i32, tile.get_y() as i32);
+
+            if tile.is_visible {
+                tile.is_explored = true;
+            }
         }
     }
 
@@ -225,6 +267,7 @@ impl Map {
         for y in y_r {
             let pos = Point{x:x, y:y};
             self.set_tile_type(pos, TileType::Floor)?;
+            self.fov_map.set(x as i32, y as i32, true, true);
         }
 
         Ok(())
@@ -244,6 +287,7 @@ impl Map {
         for x in x_r {
             let pos = Point{x:x, y:y};
             self.set_tile_type(pos, TileType::Floor)?;
+            self.fov_map.set(x as i32, y as i32, true, true);
         }
 
         Ok(())
@@ -254,6 +298,7 @@ impl Map {
             for x in (rect.top_left.x+1)..rect.bottom_right.x {
                 let pos = Point{x:x, y:y};
                 self.set_tile_type(pos, TileType::Floor)?;
+                self.fov_map.set(x as i32, y as i32, true, true);
             }
         }
 
