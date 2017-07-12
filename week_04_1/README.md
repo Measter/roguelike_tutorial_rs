@@ -1,7 +1,7 @@
-# Week 03 - Dungeon Generation
+# Week 04
 
-This week isn't really much different to the tutorial. Due to my decision to use ranges for defining tunnels, I did have to do a bit of fiddling to make sure it was going the right way, but at least that's hidden behind the function itself.
+## Week 04.1 - Field of View and Scrolling Map.
 
-I decided to draw the tunnels after generating all the rooms. It is another iteration, but I felt it was cleaner than keeping track of the previous room as I went. Besides, it's <=30 rooms, so it's not a huge deal.
+Adding the FOV calculation wasn't too different to the Python version, though I did run into the minor issue of *where* to update the FOV state on the tile map. The place I initially thought would be good was when rendering, but then I realised that this would require the `render_map` method to take the map mutably. While that would work, it doesn't feel right that a function for rendering should need to mutate the map.
 
-I'm not greatly happy with the result of the generation of the tunnels. It feels messy. I'm considering changing it so that each room connects to the closest 2-4 rooms, and also where in the room it connects the tunnel.
+I eventually settled on putting the tile update in the `update_fov` function. It would make it more expensive to run, given it's now got to iterate the tile map, but the map isn't huge and the function only gets called on a map or player position update.
