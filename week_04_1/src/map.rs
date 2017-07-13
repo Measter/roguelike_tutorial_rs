@@ -8,7 +8,6 @@ use rand::Rng;
 use tcod;
 use tcod::console::Console;
 use tcod::Color;
-use tcod::colors;
 
 use traits::{Position, Renderable};
 use units::Unit;
