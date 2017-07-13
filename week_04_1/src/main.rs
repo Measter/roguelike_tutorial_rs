@@ -93,7 +93,7 @@ fn main() {
         let draw_left = player.get_x() - SCREEN_WIDTH as i16 / 2;
         let draw_top = player.get_y() - SCREEN_HEIGHT as i16 / 2;
 
-        let mut view_port = rectangle::Rectangle::new(Point{x: draw_left, y: draw_top}, (SCREEN_WIDTH, SCREEN_HEIGHT));
+        let mut view_port = rectangle::Rectangle::new(Point{x: draw_left, y: draw_top}, (SCREEN_WIDTH, SCREEN_HEIGHT - PANEL_HEIGHT));
         view_port.clamp_to((0,0), (map_width as i16, map_height as i16));
 
         println!("{:?}", view_port);
@@ -103,7 +103,7 @@ fn main() {
 
         player.render(&mut buffer_console);
 
-        tcod::console::blit(&buffer_console, (view_port.top_left.x as i32, view_port.top_left.y as i32), (SCREEN_WIDTH as i32, SCREEN_HEIGHT as i32), &mut root, (0,0), 1.0, 1.0);
+        tcod::console::blit(&buffer_console, (view_port.top_left.x as i32, view_port.top_left.y as i32), (SCREEN_WIDTH as i32, (SCREEN_HEIGHT - PANEL_HEIGHT) as i32), &mut root, (0,0), 1.0, 1.0);
         root.flush();
 
         let key = root.wait_for_keypress(true);
