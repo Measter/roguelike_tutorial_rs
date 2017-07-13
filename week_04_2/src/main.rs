@@ -1,6 +1,10 @@
 extern crate num;
 extern crate rand;
 
+#[macro_use]
+extern crate serde_derive;
+extern crate serde_yaml;
+
 extern crate tcod;
 use tcod::RootConsole;
 use tcod::{Console};
@@ -75,11 +79,13 @@ fn main() {
 
     let mut buffer_console = Offscreen::new(map::MAP_MAX_WIDTH as i32, map::MAP_MAX_HEIGHT as i32);
 
+    let unit_types = units::load_unit_types();
+
     root.set_default_foreground(tcod::colors::WHITE);
 
     let (mut map, start_coord) = map::Map::init();
 
-    let mut player = units::Unit::new(start_coord, '@', tcod::colors::WHITE);
+    let mut player = units::Unit::new(start_coord, units::UnitType::new("Player", '@', tcod::colors::WHITE));
 
     map.update_fov(player.get_position(), FOV_RADIUS);
 
