@@ -78,12 +78,10 @@ fn main() {
                     .init();
 
     let mut buffer_console = Offscreen::new(map::MAP_MAX_WIDTH as i32, map::MAP_MAX_HEIGHT as i32);
-
-    let unit_types = units::load_unit_types();
-
     root.set_default_foreground(tcod::colors::WHITE);
 
-    let (mut map, start_coord) = map::Map::init();
+    let unit_types = units::load_unit_types();
+    let (mut map, start_coord) = map::Map::init(&unit_types);
 
     let mut player = units::Unit::new(start_coord, units::UnitType::new("Player", '@', tcod::colors::WHITE));
 
@@ -128,7 +126,7 @@ fn main() {
             },
             KeyType::Exit           => break,
             KeyType::NewGame        => {
-                let (new_map, start_coord) = map::Map::init();
+                let (new_map, start_coord) = map::Map::init(&unit_types);
                 map = new_map;
                 player.move_to(start_coord);
                 map.update_fov(start_coord, FOV_RADIUS);
