@@ -26,7 +26,11 @@ pub const MAP_MAX_HEIGHT: u8 = std::u8::MAX;
 
 const ROOM_MAX_SIZE: u8 = 10;
 const ROOM_MIN_SIZE: u8 = 6;
-const ROOM_MAX_COUNT: u8 = 30;
+// This value determines the maximum number of rooms for a given map size.
+// This was calculated by the previous map size (80 x 45) divided by the
+// previous max room count of 30.
+// This should provide a similar room densiter for each map.
+const ROOM_PER_TILE: u8 = 120;
 
 const ERR_MSG_TUNNEL: &str = "Failed to create tunnel.";
 const ERR_MSG_ROOM: &str = "Failed to create room.";
@@ -165,7 +169,10 @@ impl Map {
         let mut rooms = vec![];
         let mut player_start = Point{x:0, y:0};
 
-        for _ in 0..ROOM_MAX_COUNT {
+        // Casts are to avoid overflow.
+        let max_rooms = self.width as u16 * self.height as u16 / ROOM_PER_TILE as u16;
+
+        for _ in 0..max_rooms {
             let width = rng.gen_range(ROOM_MIN_SIZE, ROOM_MAX_SIZE);
             let height = rng.gen_range(ROOM_MIN_SIZE, ROOM_MAX_SIZE);
 
