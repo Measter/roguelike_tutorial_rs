@@ -7,3 +7,7 @@ Adding the FOV calculation wasn't too different to the Python version, though I 
 I eventually settled on putting the tile update in the `update_fov` function. It would make it more expensive to run, given it's now got to iterate the tile map, but the map isn't huge and the function only gets called on a map or player position update.
 
 I decided to implement the scrolling map. The maps are a little boring for it, but at least it demonstrates a method. It took an embarrassingly long time to figure out why the scroll clamping was weird on the bottom and right edges of the map. I had the signs flipped in the clamp function...
+
+### Update
+
+I've adjusted the room generation to use the map size to calculate the maximum number of rooms. That way the density of each level will be roughly the same.
