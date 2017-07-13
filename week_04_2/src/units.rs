@@ -20,6 +20,7 @@ pub struct UnitType {
     name: String,
     glyph: char,
     color: Color,
+    is_blocking: bool,
 }
 
 impl UnitType {
@@ -29,6 +30,7 @@ impl UnitType {
             name: name.into(),
             glyph: glyph,
             color: color,
+            is_blocking: true,
         }
     }
 }
@@ -39,6 +41,7 @@ impl<'a> From<&'a UnitTypeRaw> for UnitType {
             name: raw.name.clone(),
             glyph: raw.glyph,
             color: Color::new(raw.color[0], raw.color[1], raw.color[2]),
+            is_blocking: raw.is_blocking,
         }
     }
 }
@@ -51,6 +54,7 @@ struct UnitTypeRaw {
     glyph: char,
     color: [u8; 3],
     chance: u32,
+    is_blocking: bool,
 }
 
 pub struct UnitTypeLists {
