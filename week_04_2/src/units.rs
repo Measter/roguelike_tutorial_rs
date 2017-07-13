@@ -7,6 +7,8 @@ use point::Point;
 use std::fs::File;
 use std::path::Path;
 
+use rand::distributions::Weighted;
+
 use serde_yaml;
 
 const ERR_UNIT_LOAD: &str = "Unable to load unit type data.";
@@ -19,6 +21,7 @@ pub struct UnitType {
 }
 
 impl UnitType {
+    // Only used for the player for now.
     pub fn new(name: &str, glyph: char, color: Color) -> UnitType {
         UnitType {
             name: name.into(),
@@ -28,12 +31,12 @@ impl UnitType {
     }
 }
 
-impl From<UnitTypeRaw> for UnitType {
-    fn from(raw: UnitTypeRaw) -> UnitType {
+impl<'a> From<&'a UnitTypeRaw> for UnitType {
+    fn from(raw: &'a UnitTypeRaw) -> UnitType {
         UnitType {
-            name: raw.name,
+            name: raw.name.clone(),
             glyph: raw.glyph,
-            color: Color::new(raw.color[0], raw.color[1], raw.color[2])
+            color: Color::new(raw.color[0], raw.color[1], raw.color[2]),
         }
     }
 }
@@ -45,13 +48,30 @@ struct UnitTypeRaw {
     name: String,
     glyph: char,
     color: [u8; 3],
+    chance: u32,
 }
 
-pub fn load_unit_types() -> Vec<UnitType> {
+pub struct UnitTypeLists {
+    pub types: Vec<UnitType>,
+    pub weights: Vec<Weighted<usize>>,
+}
+
+pub fn load_unit_types() -> UnitTypeLists {
     let path = Path::new("data").join("unit_types.yaml");
     let data_file = File::open(&path).expect(ERR_UNIT_LOAD);
-    let units: Vec<UnitTypeRaw> = serde_yaml::from_reader(&data_file).expect(ERR_UNIT_LOAD);
-    units.into_iter().map(|r| r.into()).collect()
+    let raw_units: Vec<UnitTypeRaw> = serde_yaml::from_reader(&data_file).expect(ERR_UNIT_LOAD);
+
+    let mut unit_list = UnitTypeLists {
+        types: vec![],
+        weights: vec![],
+    };
+
+    for (i, raw_unit) in raw_units.iter().enumerate() {
+        unit_list.types.push(raw_unit.into());
+        unit_list.weights.push( Weighted{ weight: raw_unit.chance, item: i });
+    }
+
+    unit_list
 }
 
 #[derive(Debug)]
