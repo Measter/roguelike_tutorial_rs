@@ -115,6 +115,10 @@ impl<'a> Unit<'a> {
             unit_type: unit_type,
         }
     }
+
+    pub fn is_blocking(&self) -> bool {
+        self.unit_type.is_blocking
+    }
 }
 
 impl<'a> Position for Unit<'a> {
