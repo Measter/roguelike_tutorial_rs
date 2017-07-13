@@ -116,11 +116,9 @@ fn main() {
                 let pos = player.get_position();
                 let new_pos = pos + dir.to_rel_point();
 
-                if let Ok(tile) = map.get_tile_type(new_pos) {
-                    if !tile.blocks_move() {
-                        player.move_to(new_pos);
-                        map.update_fov(player.get_position(), FOV_RADIUS);
-                    }
+                if map.can_move_to(new_pos) {
+                    player.move_to(new_pos);
+                    map.update_fov(player.get_position(), FOV_RADIUS);
                 }
             },
             KeyType::Exit           => break,

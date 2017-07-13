@@ -278,6 +278,16 @@ impl<'a> Map<'a> {
         }
     }
 
+    pub fn can_move_to(&self, pos: Point<i16>) -> bool {
+        let tile_open = if let Ok(tile) = self.get_tile_type(pos) {
+            !tile.blocks_move()
+        } else {
+            true
+        };
+
+        tile_open && !self.npcs.iter().any(|n| n.get_position() == pos && n.is_blocking())
+    }
+
     pub fn update_fov(&mut self, Point{x, y}: Point<i16>, light_radius: u8) {
         self.fov_map.compute_fov(x as i32, y as i32, light_radius as i32, true, tcod::map::FovAlgorithm::Permissive0);
 
