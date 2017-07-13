@@ -101,8 +101,6 @@ fn main() {
         let mut view_port = rectangle::Rectangle::new(Point{x: draw_left, y: draw_top}, (SCREEN_WIDTH, SCREEN_HEIGHT - PANEL_HEIGHT));
         view_port.clamp_to((0,0), (map_width as i16, map_height as i16));
 
-        println!("{:?}", view_port);
-
         map.render_map(&mut buffer_console);
         map.render_npcs(&mut buffer_console);
 
