@@ -1,3 +1,6 @@
+use rand;
+use rand::Rng;
+
 use point::Point;
 
 #[derive(Debug, Hash, Eq, PartialEq)]
@@ -21,6 +24,13 @@ impl Rectangle {
         Point {
             x: ((self.top_left.x + self.bottom_right.x) / 2),
             y: ((self.top_left.y + self.bottom_right.y) / 2),
+        }
+    }
+
+    pub fn get_random_position(&self, rng: &mut rand::ThreadRng) -> Point<i16> {
+        Point {
+            x: rng.gen_range(self.top_left.x+1, self.bottom_right.x),
+            y: rng.gen_range(self.top_left.y+1, self.bottom_right.y),
         }
     }
 
