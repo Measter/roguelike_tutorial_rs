@@ -10,7 +10,7 @@ use tcod::console::Console;
 use tcod::Color;
 
 use traits::{Position, Renderable};
-use units::Unit;
+use units::{Unit, UnitTypeLists};
 
 use point::Point;
 use rectangle::Rectangle;
@@ -23,6 +23,10 @@ const MAP_MIN_HEIGHT: u8 = SCREEN_HEIGHT;
 pub const MAP_MAX_WIDTH: u8 = std::u8::MAX;
 pub const MAP_MAX_HEIGHT: u8 = std::u8::MAX;
 
+const ROOM_MAX_MONSTERS: u8 = 3;
+// Values for I/N chance of generating monsters for a room.
+const ROOM_CHANCE_OF_MONSTERS_I: u32 = 2;
+const ROOM_CHANCE_OF_MONSTERS_N: u32 = 5;
 const ROOM_MAX_SIZE: u8 = 10;
 const ROOM_MIN_SIZE: u8 = 6;
 // This value determines the maximum number of rooms for a given map size.
@@ -124,16 +128,16 @@ impl Tile {
 }
 
 
-pub struct Map {
+pub struct Map<'a> {
     width: u8,
     height: u8,
     tile_map: Vec<Tile>,
     fov_map: tcod::map::Map,
-    npcs: Vec<Unit>,
+    npcs: Vec<Unit<'a>>,
 }
 
-impl Map {
-    pub fn init() -> (Map, Point<i16>) {
+impl<'a> Map<'a> {
+    pub fn init(unit_types: &'a UnitTypeLists) -> (Map<'a>, Point<i16>) {
         let mut rng = rand::thread_rng();
 
         let map_width = rng.gen_range(MAP_MIN_WIDTH, MAP_MAX_WIDTH);
@@ -161,7 +165,25 @@ impl Map {
         let (rooms, player_start) = map.build_rooms(&mut rng);
         map.build_coridoors(&rooms, &mut rng);
 
+        for room in rooms {
+            if rng.gen_range(0, ROOM_CHANCE_OF_MONSTERS_N) < ROOM_CHANCE_OF_MONSTERS_I {
+                map.place_objects(&room, &unit_types, &mut rng);
+            }
+        }
+
         (map, player_start)
+    }
+
+    fn place_objects(&mut self, room: &Rectangle, units: &'a UnitTypeLists, rng: &mut rand::ThreadRng) {
+        let max_monsters = rng.gen_range(0, ROOM_MAX_MONSTERS);
+
+        for _ in 0..max_monsters {
+            let position = room.get_random_position(rng);
+            let monster_type = units.get_random_type(rng);
+
+            let monster = Unit::new(position, monster_type);
+            self.npcs.push(monster);
+        }
     }
 
     fn build_rooms(&mut self, rng: &mut rand::ThreadRng) -> (Vec<Rectangle>, Point<i16>) {

@@ -83,7 +83,8 @@ fn main() {
     let unit_types = units::load_unit_types();
     let (mut map, start_coord) = map::Map::init(&unit_types);
 
-    let mut player = units::Unit::new(start_coord, units::UnitType::new("Player", '@', tcod::colors::WHITE));
+    let player_type = units::UnitType::new("Player", '@', tcod::colors::WHITE);
+    let mut player = units::Unit::new(start_coord, &player_type);
 
     map.update_fov(player.get_position(), FOV_RADIUS);
 

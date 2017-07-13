@@ -7,7 +7,9 @@ use point::Point;
 use std::fs::File;
 use std::path::Path;
 
-use rand::distributions::Weighted;
+use rand;
+use rand::Rng;
+use rand::distributions::{Weighted};
 
 use serde_yaml;
 
@@ -53,35 +55,57 @@ struct UnitTypeRaw {
 
 pub struct UnitTypeLists {
     pub types: Vec<UnitType>,
-    pub weights: Vec<Weighted<usize>>,
+    weights: Vec<Weighted<usize>>,
+    max_weight: u32,
 }
 
-pub fn load_unit_types() -> UnitTypeLists {
+impl UnitTypeLists {
+    pub fn get_random_type(&self, rng: &mut rand::ThreadRng) -> &UnitType {
+        let val = rng.gen_range(0, self.max_weight);
+
+        let mut sel_index = self.weights.iter().skip_while(|x| x.weight > val);
+
+        if let Some(i) = sel_index.next() {
+            // We didn't get to the end of the list, so just return this one.
+            &self.types[i.item]
+        } else {
+            // Just return the last item.
+            &self.types[self.types.len()-1]
+        }
+    }
+}
+
+pub fn load_unit_types() -> UnitTypeLists{
     let path = Path::new("data").join("unit_types.yaml");
     let data_file = File::open(&path).expect(ERR_UNIT_LOAD);
     let raw_units: Vec<UnitTypeRaw> = serde_yaml::from_reader(&data_file).expect(ERR_UNIT_LOAD);
 
-    let mut unit_list = UnitTypeLists {
-        types: vec![],
-        weights: vec![],
-    };
+    let mut types = vec![];
+    let mut weights = vec![];
 
+    let mut running_total = 0;
     for (i, raw_unit) in raw_units.iter().enumerate() {
-        unit_list.types.push(raw_unit.into());
-        unit_list.weights.push( Weighted{ weight: raw_unit.chance, item: i });
+        types.push(raw_unit.into());
+        running_total += raw_unit.chance;
+
+        weights.push( Weighted{ weight: running_total, item: i });
     }
 
-    unit_list
+    UnitTypeLists {
+        types: types,
+        weights: weights,
+        max_weight: running_total,
+    }
 }
 
 #[derive(Debug)]
-pub struct Unit {
+pub struct Unit<'a> {
     position: Point<i16>,
-    unit_type: UnitType,
+    unit_type: &'a UnitType,
 }
 
-impl Unit {
-    pub fn new(pos: Point<i16>, unit_type: UnitType) -> Unit {
+impl<'a> Unit<'a> {
+    pub fn new(pos: Point<i16>, unit_type: &'a UnitType) -> Unit<'a> {
         Unit {
             position: pos,
             unit_type: unit_type,
@@ -89,7 +113,7 @@ impl Unit {
     }
 }
 
-impl Position for Unit {
+impl<'a> Position for Unit<'a> {
     fn get_x(&self) -> i16 {
         self.position.x
     }
@@ -99,7 +123,7 @@ impl Position for Unit {
     }
 }
 
-impl Renderable for Unit {
+impl<'a> Renderable for Unit<'a> {
     fn get_color(&self) -> Color {
         self.unit_type.color
     }
@@ -109,7 +133,7 @@ impl Renderable for Unit {
     }
 }
 
-impl Movable for Unit {
+impl<'a> Movable for Unit<'a> {
     fn move_to(&mut self, pos: Point<i16>){
         self.position = pos;
     }
