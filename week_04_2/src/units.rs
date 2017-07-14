@@ -65,17 +65,17 @@ pub struct UnitTypeLists {
 
 impl UnitTypeLists {
     pub fn get_random_type(&self, rng: &mut rand::ThreadRng) -> &UnitType {
-        let val = rng.gen_range(0, self.max_weight);
+        let mut val = rng.gen_range(0, self.max_weight);
 
-        let mut sel_index = self.weights.iter().skip_while(|x| x.weight > val);
+        for weight in self.weights.iter() {
+            if weight.weight > val {
+                return &self.types[weight.item];
+            }
 
-        if let Some(i) = sel_index.next() {
-            // We didn't get to the end of the list, so just return this one.
-            &self.types[i.item]
-        } else {
-            // Just return the last item.
-            &self.types[self.types.len()-1]
+            val -= weight.weight;
         }
+
+        unreachable!()
     }
 }
 
@@ -92,7 +92,7 @@ pub fn load_unit_types() -> UnitTypeLists{
         types.push(raw_unit.into());
         running_total += raw_unit.chance;
 
-        weights.push( Weighted{ weight: running_total, item: i });
+        weights.push( Weighted{ weight: raw_unit.chance, item: i });
     }
 
     UnitTypeLists {
