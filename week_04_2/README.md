@@ -1,13 +1,9 @@
 # Week 04
 
-## Week 04.1 - Field of View and Scrolling Map.
+## Week 04.2 - Preparing for Combat
 
-Adding the FOV calculation wasn't too different to the Python version, though I did run into the minor issue of *where* to update the FOV state on the tile map. The place I initially thought would be good was when rendering, but then I realised that this would require the `render_map` method to take the map mutably. While that would work, it doesn't feel right that a function for rendering should need to mutate the map.
+This ended up being way harder than I expected. I'm no longer sure if I like the NPCs being owned by the map. It might be better to have the map generate them, but then have the init function return them.
 
-I eventually settled on putting the tile update in the `update_fov` function. It would make it more expensive to run, given it's now got to iterate the tile map, but the map isn't huge and the function only gets called on a map or player position update.
+Adding weighted selection of monsters was a right pain in the backside! I did try to use the `WeightedChoice` type provided by the `rand` crate, but it required a *mutable* reference to the weight objects, which meant that I ran into lifetime and borrow check issues with the references.
 
-I decided to implement the scrolling map. The maps are a little boring for it, but at least it demonstrates a method. It took an embarrassingly long time to figure out why the scroll clamping was weird on the bottom and right edges of the map. I had the signs flipped in the clamp function...
-
-### Update
-
-I've adjusted the room generation to use the map size to calculate the maximum number of rooms. That way the density of each level will be roughly the same.
+After fiddling with it for way too long, I just gave up and implemented my own weighted selection function, that *doesn't* require a mutable reference. Then re-implemented it because I'm an idiot and got it wrong.
