@@ -136,6 +136,7 @@ pub struct Map<'a> {
     npcs: Vec<Unit<'a>>,
 }
 
+// Init and building.
 impl<'a> Map<'a> {
     pub fn init(unit_types: &'a UnitTypeLists) -> (Map<'a>, Point<i16>) {
         let mut rng = rand::thread_rng();
@@ -173,6 +174,8 @@ impl<'a> Map<'a> {
 
         (map, player_start)
     }
+
+
 
     fn place_objects(&mut self, room: &Rectangle, units: &'a UnitTypeLists, rng: &mut rand::ThreadRng) {
         let max_monsters = rng.gen_range(0, ROOM_MAX_MONSTERS);
@@ -251,63 +254,6 @@ impl<'a> Map<'a> {
         }
     }
 
-    pub fn render_map<T: Console>(&self, cons: &mut T) {
-        for tile in self.tile_map.iter() {
-            tile.render(cons);
-        }
-    }
-
-    pub fn render_npcs<T: Console>(&self, cons: &mut T) {
-        for unit in self.npcs.iter() {
-            if self.fov_map.is_in_fov(unit.get_x() as i32, unit.get_y() as i32) {
-                unit.render(cons);
-            }
-        }
-    }
-
-    pub fn point_in_map(&self, Point{x,y}: Point<i16>) -> bool {
-        x >= 0 && x < self.width as i16 && y >= 0 && y < self.height as i16
-    }
-
-    pub fn get_tile_type(&self, pos: Point<i16>) -> Result<TileType,()> {
-        if !self.point_in_map(pos) {
-            Err(())
-        } else {
-            let Point{x, y} = pos;
-            Ok(self.tile_map[y as usize * self.width as usize + x as usize].tile_type)
-        }
-    }
-
-    pub fn can_move_to(&self, pos: Point<i16>) -> bool {
-        let tile_open = if let Ok(tile) = self.get_tile_type(pos) {
-            !tile.blocks_move()
-        } else {
-            true
-        };
-
-        tile_open && !self.npcs.iter().any(|n| n.get_position() == pos && n.is_blocking())
-    }
-
-    pub fn update_fov(&mut self, Point{x, y}: Point<i16>, light_radius: u8) {
-        self.fov_map.compute_fov(x as i32, y as i32, light_radius as i32, true, tcod::map::FovAlgorithm::Permissive0);
-
-        // I've opted to update the tile map here, because it doesn't make sense that
-        // a function for rendering should need to mutate the object.
-        // It does make this function more expensive to run, but it won't be run
-        // too frequently.
-        for tile in self.tile_map.iter_mut() {
-            tile.is_visible = self.fov_map.is_in_fov(tile.get_x() as i32, tile.get_y() as i32);
-
-            if tile.is_visible {
-                tile.is_explored = true;
-            }
-        }
-    }
-
-    pub fn get_map_size(&self) -> (u8, u8) {
-        (self.width, self.height)
-    }
-
     fn create_v_tunnel(&mut self, x: i16, y_r: Range<i16>) -> Result<(),()> {
         // Need to handle the case where start > end.
         // I decided to do it here to make it easier to call the function.
@@ -358,6 +304,72 @@ impl<'a> Map<'a> {
         }
 
         Ok(())
+    }
+}
+
+// Rendering
+impl<'a> Map<'a> {
+    pub fn render_map<T: Console>(&self, cons: &mut T) {
+        for tile in self.tile_map.iter() {
+            tile.render(cons);
+        }
+    }
+
+    pub fn render_npcs<T: Console>(&self, cons: &mut T) {
+        for unit in self.npcs.iter() {
+            if self.fov_map.is_in_fov(unit.get_x() as i32, unit.get_y() as i32) {
+                unit.render(cons);
+            }
+        }
+    }
+}
+
+// Queries
+impl<'a> Map<'a> {
+    pub fn point_in_map(&self, Point{x,y}: Point<i16>) -> bool {
+        x >= 0 && x < self.width as i16 && y >= 0 && y < self.height as i16
+    }
+
+    pub fn get_tile_type(&self, pos: Point<i16>) -> Result<TileType,()> {
+        if !self.point_in_map(pos) {
+            Err(())
+        } else {
+            let Point{x, y} = pos;
+            Ok(self.tile_map[y as usize * self.width as usize + x as usize].tile_type)
+        }
+    }
+
+    pub fn can_move_to(&self, pos: Point<i16>) -> bool {
+        let tile_open = if let Ok(tile) = self.get_tile_type(pos) {
+            !tile.blocks_move()
+        } else {
+            true
+        };
+
+        tile_open && !self.npcs.iter().any(|n| n.get_position() == pos && n.is_blocking())
+    }
+
+    pub fn get_map_size(&self) -> (u8, u8) {
+        (self.width, self.height)
+    }
+}
+
+// Updating
+impl<'a> Map<'a> {
+    pub fn update_fov(&mut self, Point{x, y}: Point<i16>, light_radius: u8) {
+        self.fov_map.compute_fov(x as i32, y as i32, light_radius as i32, true, tcod::map::FovAlgorithm::Permissive0);
+
+        // I've opted to update the tile map here, because it doesn't make sense that
+        // a function for rendering should need to mutate the object.
+        // It does make this function more expensive to run, but it won't be run
+        // too frequently.
+        for tile in self.tile_map.iter_mut() {
+            tile.is_visible = self.fov_map.is_in_fov(tile.get_x() as i32, tile.get_y() as i32);
+
+            if tile.is_visible {
+                tile.is_explored = true;
+            }
+        }
     }
 
     fn set_tile_type(&mut self, pos: Point<i16>, new_tile: TileType) -> Result<(),()> {
