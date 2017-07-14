@@ -383,6 +383,12 @@ impl<'a> Map<'a> {
         }
     }
 
+    pub fn update_npcs(&mut self) {
+        for enemy in self.npcs.iter() {
+            println!("The {} growls!", enemy.get_name());
+        }
+    }
+
     fn set_tile_type(&mut self, pos: Point<i16>, new_tile: TileType) -> Result<(),()> {
         if !self.point_in_map(pos) {
             Err(())

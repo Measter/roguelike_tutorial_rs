@@ -28,6 +28,19 @@ const PANEL_HEIGHT: u8 = 5;
 
 const FOV_RADIUS: u8 = 10;
 
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+enum GameState {
+    Playing,
+    Menu,
+}
+
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+enum PlayerAction {
+    Moved,
+    Turn,
+    NoTurn,
+}
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Direction {
     Up,
@@ -88,6 +101,9 @@ fn main() {
 
     map.update_fov(player.get_position(), FOV_RADIUS);
 
+    let mut game_state = GameState::Playing;
+    let mut player_action = PlayerAction::NoTurn;
+
     while !root.window_closed() {
         buffer_console.clear();
         root.clear();
@@ -112,23 +128,47 @@ fn main() {
         let key = root.wait_for_keypress(true);
 
         match key_type(&key) {
-            KeyType::Movement(dir)  => {
+            KeyType::Movement(dir) if game_state == GameState::Playing => {
                 let pos = player.get_position();
                 let new_pos = pos + dir.to_rel_point();
 
-                if map.can_move_to(new_pos) {
-                    player.move_to(new_pos);
-                    map.update_fov(player.get_position(), FOV_RADIUS);
+                player_action = match map.can_move_to(new_pos) {
+                    map::CanMoveResponse::Open => {
+                        player.move_to(new_pos);
+                        PlayerAction::Moved
+                    },
+                    map::CanMoveResponse::Enemy(ref enemy) => {
+                        println!("Player attacks {}", enemy.get_name());
+                        PlayerAction::Turn
+                    }
+                    map::CanMoveResponse::Scenery => {
+                        PlayerAction::NoTurn
+                    } // Nothing to do.
                 }
             },
+            KeyType::Movement(_) if game_state == GameState::Menu => {} // Will likely be used for menus
+            KeyType::Movement(_) => unreachable!(),
+
             KeyType::Exit           => break,
             KeyType::NewGame        => {
                 let (new_map, start_coord) = map::Map::init(&unit_types);
                 map = new_map;
                 player.move_to(start_coord);
                 map.update_fov(start_coord, FOV_RADIUS);
+                game_state = GameState::Playing;
             }
             KeyType::Other          => println!("{:?}", key),
+        }
+
+        if player_action == PlayerAction::Moved {
+            map.update_fov(player.get_position(), FOV_RADIUS);
+        }
+
+        match (game_state, player_action) {
+            (GameState::Playing, PlayerAction::Moved) | (GameState::Playing, PlayerAction::Turn) => {
+                map.update_npcs();
+            }
+            _ => {} // Don't update AI.
         }
     }
 }
