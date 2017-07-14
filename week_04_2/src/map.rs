@@ -39,6 +39,13 @@ const ERR_MSG_TUNNEL: &str = "Failed to create tunnel.";
 const ERR_MSG_ROOM: &str = "Failed to create room.";
 const ERR_MSG_ROOM_CMP: &str = "Error comparing rooms.";
 
+#[derive(Debug, Copy, Clone)]
+pub enum CanMoveResponse<'a> {
+    Open,
+    Scenery,
+    Enemy(&'a Unit<'a>),
+}
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum TileType {
     Floor,
@@ -339,14 +346,18 @@ impl<'a> Map<'a> {
         }
     }
 
-    pub fn can_move_to(&self, pos: Point<i16>) -> bool {
-        let tile_open = if let Ok(tile) = self.get_tile_type(pos) {
-            !tile.blocks_move()
-        } else {
-            true
-        };
+    pub fn can_move_to(&self, pos: Point<i16>) -> CanMoveResponse {
+        if let Ok(tile) = self.get_tile_type(pos) {
+            if tile.blocks_move() {
+                return CanMoveResponse::Scenery;
+            }
+        }
 
-        tile_open && !self.npcs.iter().any(|n| n.get_position() == pos && n.is_blocking())
+        if let Some(npc) = self.npcs.iter().filter(|n| n.get_position() == pos).next() {
+            CanMoveResponse::Enemy(&npc)
+        } else {
+            CanMoveResponse::Open
+        }
     }
 
     pub fn get_map_size(&self) -> (u8, u8) {
