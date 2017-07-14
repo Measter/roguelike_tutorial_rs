@@ -119,6 +119,10 @@ impl<'a> Unit<'a> {
     pub fn is_blocking(&self) -> bool {
         self.unit_type.is_blocking
     }
+
+    pub fn get_name(&self) -> &str {
+        &self.unit_type.name
+    }
 }
 
 impl<'a> Position for Unit<'a> {
