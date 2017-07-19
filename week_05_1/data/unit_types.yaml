@@ -4,8 +4,8 @@
   glyph: o
   chance: 80
   is_blocking: true
-  max_hp: 20
-  defence: 2
+  max_hp: 10
+  defence: 0
   attack: 3
   color: 
     - 63
@@ -14,11 +14,11 @@
 - 
   name: Troll
   glyph: T
-  chance: 20
+  chance: 16
   is_blocking: true
   max_hp: 50
-  defence: 5
-  attack: 7
+  defence: 1
+  attack: 4
   color: 
     - 0
     - 191
@@ -29,8 +29,8 @@
   chance: 60
   is_blocking: true
   max_hp: 30
-  defence: 3
-  attack: 5
+  defence: 0
+  attack: 4
   color: 
     - 214
     - 206
