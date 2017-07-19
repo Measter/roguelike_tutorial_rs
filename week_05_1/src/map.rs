@@ -11,6 +11,7 @@ use tcod::Color;
 
 use traits::{Position, Renderable};
 use units::{Unit, UnitTypeLists};
+use item::Item;
 
 use point::Point;
 use rectangle::Rectangle;
@@ -138,6 +139,7 @@ pub struct Map {
     width: u8,
     height: u8,
     tile_map: Vec<Tile>,
+    items: Vec<Item>,
     fov_map: tcod::map::Map,
 }
 
@@ -160,6 +162,7 @@ impl Map {
             width: map_width,
             height: map_height,
             tile_map: map,
+            items: vec![],
             fov_map: tcod::map::Map::new(map_width as i32, map_height as i32),
         };
 
@@ -174,7 +177,7 @@ impl Map {
 
         for room in rooms {
             if rng.gen_range(0, ROOM_CHANCE_OF_MONSTERS_N) < ROOM_CHANCE_OF_MONSTERS_I {
-                map.place_objects(&room, &unit_types, &mut npcs, &mut rng);
+                map.place_npcs(&room, &unit_types, &mut npcs, &mut rng);
             }
         }
 
@@ -183,7 +186,7 @@ impl Map {
 
 
 
-    fn place_objects<'a>(&mut self, room: &Rectangle, units: &'a UnitTypeLists, npc_list: &mut Vec<Unit<'a>>, rng: &mut rand::ThreadRng) {
+    fn place_npcs<'a>(&mut self, room: &Rectangle, units: &'a UnitTypeLists, npc_list: &mut Vec<Unit<'a>>, rng: &mut rand::ThreadRng) {
         let max_monsters = rng.gen_range(0, ROOM_MAX_MONSTERS);
 
         for _ in 0..max_monsters {
@@ -193,6 +196,10 @@ impl Map {
             let monster = Unit::new(position, monster_type);
             npc_list.push(monster);
         }
+    }
+
+    pub fn place_item(&mut self, item: Item) {
+        self.items.push(item);
     }
 
     fn build_rooms(&mut self, rng: &mut rand::ThreadRng) -> (Vec<Rectangle>, Point<i16>) {
@@ -318,6 +325,10 @@ impl Map {
     pub fn render_map<T: Console>(&self, cons: &mut T) {
         for tile in self.tile_map.iter() {
             tile.render(cons);
+        }
+
+        for item in self.items.iter() {
+            item.render(cons);
         }
     }
 }
