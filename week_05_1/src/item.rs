@@ -1,6 +1,6 @@
 use tcod::colors::{Color};
 
-use traits::{Renderable, Movable, Position};
+use traits::{Renderable, Position};
 use point::Point;
 
 #[derive(Debug)]
