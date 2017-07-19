@@ -1,0 +1,19 @@
+---
+- 
+  name: Orc
+  glyph: o
+  chance: 80
+  is_blocking: true
+  color: 
+    - 63
+    - 127
+    - 63
+- 
+  name: Troll
+  glyph: T
+  chance: 20
+  is_blocking: true
+  color: 
+    - 0
+    - 191
+    - 0
