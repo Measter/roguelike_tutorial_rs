@@ -8,6 +8,7 @@ use map::Map;
 
 use std::fs::File;
 use std::path::Path;
+use std::cmp::min;
 
 use rand;
 use rand::Rng;
@@ -199,6 +200,10 @@ impl<'a> Unit<'a> {
             println!("{} attacks {}, but it has no effect!", self.get_name(), target.get_name());
             AttackResult::NoEffect
         }
+    }
+
+    pub fn heal(&mut self, amount: u8) {
+        self.cur_hp = min(amount, self.unit_type.max_hp);
     }
 }
 
