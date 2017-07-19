@@ -39,7 +39,7 @@ const ERR_MSG_TUNNEL: &str = "Failed to create tunnel.";
 const ERR_MSG_ROOM: &str = "Failed to create room.";
 const ERR_MSG_ROOM_CMP: &str = "Error comparing rooms.";
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum CanMoveResponse {
     Open,
     Scenery,
