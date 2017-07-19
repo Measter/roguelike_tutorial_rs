@@ -124,7 +124,7 @@ fn handle_input<'a>(root: &mut RootConsole, cur_game_state: GameState, map: &map
             player_action = match map.can_move_to(new_pos) {
                 map::CanMoveResponse::Open => {
                     if let Some(enemy) = npcs.iter_mut().filter(|n| n.get_position() == new_pos).next() {
-                        println!("Player attacks {}", enemy.get_name());
+                        player.attack(enemy);
                         PlayerAction::Turn
                     } else {
                         player.move_to(new_pos);
@@ -195,7 +195,7 @@ fn main() {
             }
             (GameState::Playing, PlayerAction::Moved) | (GameState::Playing, PlayerAction::Turn) => {
                 for enemy in npcs.iter_mut() {
-                    enemy.take_turn(&map, &player);
+                    enemy.take_turn(&map, &mut player);
                 }
             }
             _ => {} // Don't update AI.

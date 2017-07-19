@@ -117,6 +117,14 @@ pub fn load_unit_types() -> UnitTypeLists{
     }
 }
 
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum AttackResult {
+    Dead,
+    Alive,
+    NoEffect,
+}
+
 #[derive(Debug)]
 pub struct Unit<'a> {
     position: Point<i16>,
@@ -158,7 +166,7 @@ impl<'a> Unit<'a> {
         new_pos + cur_pos
     }
 
-    pub fn take_turn(&mut self, map: &Map, player: &Unit) {
+    pub fn take_turn(&mut self, map: &Map, player: &mut Unit) {
         if !map.point_in_fov(self.get_position()) {
             return;
         }
@@ -169,7 +177,26 @@ impl<'a> Unit<'a> {
                 self.move_to(new_pos);
             }
         } else if player.get_hp() > 0 {
-            println!("The attack of the {} bounces off your armour.", self.get_name());
+            self.attack(player);
+        }
+    }
+
+    pub fn take_damage(&mut self, damage: u8) -> AttackResult {
+        if let Some(new_hp) = self.cur_hp.checked_sub(damage) {
+            self.cur_hp = new_hp;
+            AttackResult::Alive
+        } else {
+            AttackResult::Dead
+        }
+    }
+
+    pub fn attack(&self, target: &mut Unit) -> AttackResult {
+        if let Some(damage) = self.unit_type.attack.checked_sub(target.unit_type.defence) {
+            println!("{} attacks {} for {} damage.", self.get_name(), target.get_name(), damage);
+            target.take_damage(damage)
+        } else {
+            println!("{} attacks {}, but it has no effect!", self.get_name(), target.get_name());
+            AttackResult::NoEffect
         }
     }
 }
