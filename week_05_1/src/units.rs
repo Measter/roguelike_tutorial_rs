@@ -124,9 +124,11 @@ pub struct Unit<'a> {
 
 impl<'a> Unit<'a> {
     pub fn new(pos: Point<i16>, unit_type: &'a UnitType) -> Unit<'a> {
+        let cur_hp = unit_type.max_hp;
         Unit {
             position: pos,
             unit_type: unit_type,
+            cur_hp: cur_hp,
         }
     }
 
