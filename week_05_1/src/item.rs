@@ -12,9 +12,9 @@ pub struct Item {
 }
 
 impl Item {
-    pub fn new(name: &str, glyph: char, colour: Color, pos: Point<i16>) -> Item {
+    pub fn new(name: &str, glyph: char, color: Color, pos: Point<i16>) -> Item {
         Item {
-            name: name,
+            name: name.into(),
             glyph: glyph,
             color: color,
             position: pos,
@@ -22,7 +22,7 @@ impl Item {
     }
 }
 
-impl Position for Unit {
+impl Position for Item {
     fn get_x(&self) -> i16 {
         self.position.x
     }
@@ -32,7 +32,7 @@ impl Position for Unit {
     }
 }
 
-impl Renderable for Unit {
+impl Renderable for Item {
     fn get_color(&self) -> Color {
         self.color
     }
