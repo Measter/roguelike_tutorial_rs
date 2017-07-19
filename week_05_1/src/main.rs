@@ -83,7 +83,7 @@ fn key_type(key: &Key) -> KeyType {
     }
 }
 
-fn render_all(root: &mut RootConsole, buffer_console: &mut Offscreen, map: &map::Map, player: &units::Unit) {
+fn render_all<'a>(root: &mut RootConsole, buffer_console: &mut Offscreen, map: &map::Map, npcs: &Vec<units::Unit<'a>>, player: &units::Unit) {
     buffer_console.clear();
     root.clear();
 
@@ -97,7 +97,12 @@ fn render_all(root: &mut RootConsole, buffer_console: &mut Offscreen, map: &map:
     view_port.clamp_to((0,0), (map_width as i16, map_height as i16));
 
     map.render_map(buffer_console);
-    map.render_npcs(buffer_console);
+    
+    for unit in npcs.iter() {
+        if map.point_in_fov(unit.get_position()) {
+            unit.render(buffer_console);
+        }
+    }
 
     player.render(buffer_console);
 
@@ -105,7 +110,7 @@ fn render_all(root: &mut RootConsole, buffer_console: &mut Offscreen, map: &map:
     root.flush();
 }
 
-fn handle_input(root: &mut RootConsole, cur_game_state: GameState, map: &map::Map, player: &mut units::Unit) -> (PlayerAction, GameState) {
+fn handle_input<'a>(root: &mut RootConsole, cur_game_state: GameState, map: &map::Map, npcs: &mut Vec<units::Unit<'a>>, player: &mut units::Unit) -> (PlayerAction, GameState) {
     let key = root.wait_for_keypress(true);
 
     let mut player_action: PlayerAction = PlayerAction::NoTurn;
@@ -118,13 +123,14 @@ fn handle_input(root: &mut RootConsole, cur_game_state: GameState, map: &map::Ma
 
             player_action = match map.can_move_to(new_pos) {
                 map::CanMoveResponse::Open => {
-                    player.move_to(new_pos);
-                    PlayerAction::Moved
+                    if let Some(enemy) = npcs.iter_mut().filter(|n| n.get_position() == pos).next() {
+                        println!("Player attacks {}", enemy.get_name());
+                        PlayerAction::Turn
+                    } else {
+                        player.move_to(new_pos);
+                        PlayerAction::Moved
+                    }
                 },
-                map::CanMoveResponse::Enemy(ref enemy) => {
-                    println!("Player attacks {}", enemy.get_name());
-                    PlayerAction::Turn
-                }
                 map::CanMoveResponse::Scenery => {
                     PlayerAction::NoTurn
                 } // Nothing to do.
@@ -158,7 +164,7 @@ fn main() {
     root.set_default_foreground(tcod::colors::WHITE);
 
     let unit_types = units::load_unit_types();
-    let (mut map, start_coord) = map::Map::init(&unit_types);
+    let (mut map, mut npcs, start_coord) = map::Map::init(&unit_types);
 
     let player_type = units::UnitType::new("Player", '@', tcod::colors::WHITE);
     let mut player = units::Unit::new(start_coord, &player_type);
@@ -168,9 +174,9 @@ fn main() {
     let mut game_state = GameState::Playing;
 
     while !root.window_closed() {
-        render_all(&mut root, &mut buffer_console, &map, &player);
+        render_all(&mut root, &mut buffer_console, &map, &npcs, &player);
 
-        let (player_action, new_game_state) = handle_input(&mut root, game_state, &map, &mut player);
+        let (player_action, new_game_state) = handle_input(&mut root, game_state, &map, &mut npcs, &mut player);
         game_state = new_game_state;
 
         if player_action == PlayerAction::Moved {
@@ -180,14 +186,17 @@ fn main() {
         match (game_state, player_action) {
             (GameState::Exit, _) => break,
             (GameState::NewMap, _) => {
-                let (new_map, start_coord) = map::Map::init(&unit_types);
+                let (new_map, units, start_coord) = map::Map::init(&unit_types);
                 map = new_map;
+                npcs = units;
                 player.move_to(start_coord);
                 map.update_fov(start_coord, FOV_RADIUS);
                 game_state = GameState::Playing;
             }
             (GameState::Playing, PlayerAction::Moved) | (GameState::Playing, PlayerAction::Turn) => {
-                map.update_npcs();
+                for enemy in npcs.iter_mut() {
+                    enemy.take_turn(&map, &player);
+                }
             }
             _ => {} // Don't update AI.
         }

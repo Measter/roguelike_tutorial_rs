@@ -40,10 +40,9 @@ const ERR_MSG_ROOM: &str = "Failed to create room.";
 const ERR_MSG_ROOM_CMP: &str = "Error comparing rooms.";
 
 #[derive(Debug, Copy, Clone)]
-pub enum CanMoveResponse<'a> {
+pub enum CanMoveResponse {
     Open,
     Scenery,
-    Enemy(&'a Unit<'a>),
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -135,17 +134,16 @@ impl Tile {
 }
 
 
-pub struct Map<'a> {
+pub struct Map {
     width: u8,
     height: u8,
     tile_map: Vec<Tile>,
     fov_map: tcod::map::Map,
-    npcs: Vec<Unit<'a>>,
 }
 
 // Init and building.
-impl<'a> Map<'a> {
-    pub fn init(unit_types: &'a UnitTypeLists) -> (Map<'a>, Point<i16>) {
+impl Map {
+    pub fn init<'a>(unit_types: &'a UnitTypeLists) -> (Map, Vec<Unit<'a>>, Point<i16>) {
         let mut rng = rand::thread_rng();
 
         let map_width = rng.gen_range(MAP_MIN_WIDTH, MAP_MAX_WIDTH);
@@ -163,8 +161,9 @@ impl<'a> Map<'a> {
             height: map_height,
             tile_map: map,
             fov_map: tcod::map::Map::new(map_width as i32, map_height as i32),
-            npcs: vec![],
         };
+
+        let mut npcs = vec![];
 
         // Set all tiles to be not walkable, not transparent.
         // We'll be setting these in the build_rooms and build_coridoors methods.
@@ -175,16 +174,16 @@ impl<'a> Map<'a> {
 
         for room in rooms {
             if rng.gen_range(0, ROOM_CHANCE_OF_MONSTERS_N) < ROOM_CHANCE_OF_MONSTERS_I {
-                map.place_objects(&room, &unit_types, &mut rng);
+                map.place_objects(&room, &unit_types, &mut npcs, &mut rng);
             }
         }
 
-        (map, player_start)
+        (map, npcs, player_start)
     }
 
 
 
-    fn place_objects(&mut self, room: &Rectangle, units: &'a UnitTypeLists, rng: &mut rand::ThreadRng) {
+    fn place_objects<'a>(&mut self, room: &Rectangle, units: &'a UnitTypeLists, npc_list: &mut Vec<Unit<'a>>, rng: &mut rand::ThreadRng) {
         let max_monsters = rng.gen_range(0, ROOM_MAX_MONSTERS);
 
         for _ in 0..max_monsters {
@@ -192,7 +191,7 @@ impl<'a> Map<'a> {
             let monster_type = units.get_random_type(rng);
 
             let monster = Unit::new(position, monster_type);
-            self.npcs.push(monster);
+            npc_list.push(monster);
         }
     }
 
@@ -315,24 +314,16 @@ impl<'a> Map<'a> {
 }
 
 // Rendering
-impl<'a> Map<'a> {
+impl Map {
     pub fn render_map<T: Console>(&self, cons: &mut T) {
         for tile in self.tile_map.iter() {
             tile.render(cons);
         }
     }
-
-    pub fn render_npcs<T: Console>(&self, cons: &mut T) {
-        for unit in self.npcs.iter() {
-            if self.fov_map.is_in_fov(unit.get_x() as i32, unit.get_y() as i32) {
-                unit.render(cons);
-            }
-        }
-    }
 }
 
 // Queries
-impl<'a> Map<'a> {
+impl Map {
     pub fn point_in_map(&self, Point{x,y}: Point<i16>) -> bool {
         x >= 0 && x < self.width as i16 && y >= 0 && y < self.height as i16
     }
@@ -347,26 +338,23 @@ impl<'a> Map<'a> {
     }
 
     pub fn can_move_to(&self, pos: Point<i16>) -> CanMoveResponse {
-        if let Ok(tile) = self.get_tile_type(pos) {
-            if tile.blocks_move() {
-                return CanMoveResponse::Scenery;
-            }
-        }
-
-        if let Some(npc) = self.npcs.iter().filter(|n| n.get_position() == pos).next() {
-            CanMoveResponse::Enemy(&npc)
-        } else {
-            CanMoveResponse::Open
+        match self.get_tile_type(pos) {
+            Ok(tile) if tile.blocks_move() => CanMoveResponse::Scenery,
+            _ => CanMoveResponse::Open
         }
     }
 
     pub fn get_map_size(&self) -> (u8, u8) {
         (self.width, self.height)
     }
+
+    pub fn point_in_fov(&self, Point{x,y}: Point<i16>) -> bool {
+        self.fov_map.is_in_fov(x as i32, y as i32)
+    }
 }
 
 // Updating
-impl<'a> Map<'a> {
+impl Map {
     pub fn update_fov(&mut self, Point{x, y}: Point<i16>, light_radius: u8) {
         self.fov_map.compute_fov(x as i32, y as i32, light_radius as i32, true, tcod::map::FovAlgorithm::Permissive0);
 
@@ -380,12 +368,6 @@ impl<'a> Map<'a> {
             if tile.is_visible {
                 tile.is_explored = true;
             }
-        }
-    }
-
-    pub fn update_npcs(&mut self) {
-        for enemy in self.npcs.iter_mut() {
-            enemy.take_turn();
         }
     }
 
