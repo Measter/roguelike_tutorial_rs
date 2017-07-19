@@ -186,6 +186,7 @@ impl<'a> Unit<'a> {
             self.cur_hp = new_hp;
             AttackResult::Alive
         } else {
+            self.cur_hp = 0;
             AttackResult::Dead
         }
     }
