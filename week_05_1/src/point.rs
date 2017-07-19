@@ -16,6 +16,10 @@ impl<T: Num + ToPrimitive> Point<T> {
         }
     }
 
+    pub fn radius(&self) -> f64 {
+        self.sqr_radius().sqrt()
+    }
+
     pub fn sqr_radius(&self) -> f64 {
         let x = self.x.to_f64().expect("Failed to convert to float.");
         let y = self.y.to_f64().expect("Failed to convert to float.");
