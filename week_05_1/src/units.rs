@@ -3,6 +3,8 @@ use tcod::colors::{Color};
 use traits::{Renderable, Movable, Position};
 use Direction;
 use point::Point;
+use map;
+use map::Map;
 
 use std::fs::File;
 use std::path::Path;
@@ -140,8 +142,35 @@ impl<'a> Unit<'a> {
         &self.unit_type.name
     }
 
-    pub fn take_turn(&mut self) {
-        println!("The {} growls", self.get_name());
+    pub fn get_hp(&self) -> u8 {
+        self.cur_hp
+    }
+
+    fn get_step_towards(&mut self, target: Point<i16>) -> Point<i16> {
+        let cur_pos = self.get_position();
+        let delta = target - cur_pos;
+        let dist = delta.radius();
+
+        let new_pos = Point {
+            x: (delta.x as f64 / dist).round() as i16,
+            y: (delta.y as f64 / dist).round() as i16,
+        };
+        new_pos + cur_pos
+    }
+
+    pub fn take_turn(&mut self, map: &Map, player: &Unit) {
+        if !map.point_in_fov(self.get_position()) {
+            return;
+        }
+
+        if (self.get_position() - player.get_position()).radius() >= 2.0 {
+            let new_pos = self.get_step_towards(player.get_position());
+            if map.can_move_to(new_pos) == map::CanMoveResponse::Open {
+                self.move_to(new_pos);
+            }
+        } else if player.get_hp() > 0 {
+            println!("The attack of the {} bounces off your armour.", self.get_name());
+        }
     }
 }
 
