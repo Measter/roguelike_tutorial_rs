@@ -81,6 +81,28 @@ fn key_type(key: &Key) -> KeyType {
     }
 }
 
+fn render_all(root: &mut RootConsole, buffer_console: &mut Offscreen, map: &map::Map, player: &units::Unit) {
+    buffer_console.clear();
+    root.clear();
+
+    // With the scrolling map, we need to try to centre the player on the screen
+    // without going past the bounds of the buffer.
+    let (map_width, map_height) = map.get_map_size();
+    let draw_left = player.get_x() - SCREEN_WIDTH as i16 / 2;
+    let draw_top = player.get_y() - SCREEN_HEIGHT as i16 / 2;
+
+    let mut view_port = rectangle::Rectangle::new(Point{x: draw_left, y: draw_top}, (SCREEN_WIDTH, SCREEN_HEIGHT - PANEL_HEIGHT));
+    view_port.clamp_to((0,0), (map_width as i16, map_height as i16));
+
+    map.render_map(buffer_console);
+    map.render_npcs(buffer_console);
+
+    player.render(buffer_console);
+
+    tcod::console::blit(buffer_console, (view_port.top_left.x as i32, view_port.top_left.y as i32), (SCREEN_WIDTH as i32, (SCREEN_HEIGHT - PANEL_HEIGHT) as i32), root, (0,0), 1.0, 1.0);
+    root.flush();
+}
+
 fn main() {
     let mut root = RootConsole::initializer()
                     .size(SCREEN_WIDTH as i32, SCREEN_HEIGHT as i32)
@@ -105,25 +127,7 @@ fn main() {
     let mut player_action = PlayerAction::NoTurn;
 
     while !root.window_closed() {
-        buffer_console.clear();
-        root.clear();
-
-        // With the scrolling map, we need to try to centre the player on the screen
-        // without going past the bounds of the buffer.
-        let (map_width, map_height) = map.get_map_size();
-        let draw_left = player.get_x() - SCREEN_WIDTH as i16 / 2;
-        let draw_top = player.get_y() - SCREEN_HEIGHT as i16 / 2;
-
-        let mut view_port = rectangle::Rectangle::new(Point{x: draw_left, y: draw_top}, (SCREEN_WIDTH, SCREEN_HEIGHT - PANEL_HEIGHT));
-        view_port.clamp_to((0,0), (map_width as i16, map_height as i16));
-
-        map.render_map(&mut buffer_console);
-        map.render_npcs(&mut buffer_console);
-
-        player.render(&mut buffer_console);
-
-        tcod::console::blit(&buffer_console, (view_port.top_left.x as i32, view_port.top_left.y as i32), (SCREEN_WIDTH as i32, (SCREEN_HEIGHT - PANEL_HEIGHT) as i32), &mut root, (0,0), 1.0, 1.0);
-        root.flush();
+        render_all(&mut root, &mut buffer_console, &map, &player);
 
         let key = root.wait_for_keypress(true);
 
