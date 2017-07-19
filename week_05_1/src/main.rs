@@ -31,6 +31,7 @@ const FOV_RADIUS: u8 = 10;
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 enum GameState {
     Playing,
+    Dead,
     NewMap,
     Menu,
     Exit,
@@ -104,7 +105,10 @@ fn render_all<'a>(root: &mut RootConsole, buffer_console: &mut Offscreen, map: &
         }
     }
 
-    player.render(buffer_console);
+    // If the player has died, a corpse will have been created.
+    if player.get_hp() > 0 {
+        player.render(buffer_console);
+    }
 
     tcod::console::blit(buffer_console, (view_port.top_left.x as i32, view_port.top_left.y as i32), (SCREEN_WIDTH as i32, (SCREEN_HEIGHT - PANEL_HEIGHT) as i32), root, (0,0), 1.0, 1.0);
     root.flush();
@@ -114,7 +118,7 @@ fn handle_input<'a>(root: &mut RootConsole, cur_game_state: GameState, map: &map
     let key = root.wait_for_keypress(true);
 
     let mut player_action: PlayerAction = PlayerAction::NoTurn;
-    let mut new_game_state: GameState = GameState::Playing;
+    let mut new_game_state: GameState = cur_game_state;
 
     match key_type(&key) {
         KeyType::Movement(dir) if cur_game_state == GameState::Playing => {
@@ -137,7 +141,7 @@ fn handle_input<'a>(root: &mut RootConsole, cur_game_state: GameState, map: &map
             };
         },
         KeyType::Movement(_) if cur_game_state == GameState::Menu => {} // Will likely be used for menus
-        KeyType::Movement(_) => unreachable!(),
+        KeyType::Movement(_) => {},
 
         KeyType::Exit           => {
             new_game_state = GameState::Exit;
@@ -190,12 +194,32 @@ fn main() {
                 map = new_map;
                 npcs = units;
                 player.move_to(start_coord);
+                player.heal(255); // Just max health, whatever that is.
                 map.update_fov(start_coord, FOV_RADIUS);
                 game_state = GameState::Playing;
             }
             (GameState::Playing, PlayerAction::Moved) | (GameState::Playing, PlayerAction::Turn) => {
                 for enemy in npcs.iter_mut() {
-                    enemy.take_turn(&map, &mut player);
+                    if enemy.get_hp() > 0 {
+                        enemy.take_turn(&map, &mut player);
+
+                        if player.get_hp() == 0 {
+                            println!("You died!");
+                            let corpse = item::Item::new(&player.get_name(), player.get_glyph(), tcod::colors::DARK_RED, player.get_position());
+                            map.place_item(corpse);
+                            game_state = GameState::Dead;
+                            break;
+                        }
+                    }
+                }
+
+                let dead_npc_indices: Vec<usize> = npcs.iter().enumerate().filter(|&(_, x)| x.get_hp() == 0).map(|(i, _)| i).collect();
+                for i in dead_npc_indices {
+                    let npc = npcs.remove(i);
+                    let corpse = item::Item::new(&npc.get_name(), npc.get_glyph(), tcod::colors::DARK_RED, npc.get_position());
+
+                    map.place_item(corpse);  
+                    println!("{} is dead!", npc.get_name());
                 }
             }
             _ => {} // Don't update AI.
