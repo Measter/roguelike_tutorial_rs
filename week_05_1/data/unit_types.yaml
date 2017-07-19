@@ -4,6 +4,9 @@
   glyph: o
   chance: 80
   is_blocking: true
+  max_hp: 20
+  defence: 2
+  attack: 3
   color: 
     - 63
     - 127
@@ -13,7 +16,22 @@
   glyph: T
   chance: 20
   is_blocking: true
+  max_hp: 50
+  defence: 5
+  attack: 7
   color: 
     - 0
     - 191
     - 0
+- 
+  name: Human
+  glyph: h
+  chance: 60
+  is_blocking: true
+  max_hp: 30
+  defence: 3
+  attack: 5
+  color: 
+    - 214
+    - 206
+    - 121

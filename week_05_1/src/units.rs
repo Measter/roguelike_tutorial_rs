@@ -21,6 +21,9 @@ pub struct UnitType {
     glyph: char,
     color: Color,
     is_blocking: bool,
+    max_hp: u8,
+    defence: u8,
+    attack: u8,
 }
 
 impl UnitType {
@@ -31,6 +34,10 @@ impl UnitType {
             glyph: glyph,
             color: color,
             is_blocking: true,
+            // Following based on standard human in the data files.
+            max_hp: 30,
+            defence: 3,
+            attack: 5,
         }
     }
 }
@@ -42,6 +49,9 @@ impl<'a> From<&'a UnitTypeRaw> for UnitType {
             glyph: raw.glyph,
             color: Color::new(raw.color[0], raw.color[1], raw.color[2]),
             is_blocking: raw.is_blocking,
+            max_hp: raw.max_hp,
+            defence: raw.defence,
+            attack: raw.attack,
         }
     }
 }
@@ -55,6 +65,9 @@ struct UnitTypeRaw {
     color: [u8; 3],
     chance: u32,
     is_blocking: bool,
+    max_hp: u8,
+    defence: u8,
+    attack: u8,
 }
 
 pub struct UnitTypeLists {
@@ -106,6 +119,7 @@ pub fn load_unit_types() -> UnitTypeLists{
 pub struct Unit<'a> {
     position: Point<i16>,
     unit_type: &'a UnitType,
+    cur_hp: u8,
 }
 
 impl<'a> Unit<'a> {
