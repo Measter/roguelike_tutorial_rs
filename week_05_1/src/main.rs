@@ -18,7 +18,7 @@ mod point;
 use point::Point;
 
 mod rectangle;
-
+mod item;
 mod units;
 mod map;
 
