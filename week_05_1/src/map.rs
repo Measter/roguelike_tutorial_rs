@@ -384,8 +384,8 @@ impl<'a> Map<'a> {
     }
 
     pub fn update_npcs(&mut self) {
-        for enemy in self.npcs.iter() {
-            println!("The {} growls!", enemy.get_name());
+        for enemy in self.npcs.iter_mut() {
+            enemy.take_turn();
         }
     }
 

@@ -139,6 +139,10 @@ impl<'a> Unit<'a> {
     pub fn get_name(&self) -> &str {
         &self.unit_type.name
     }
+
+    pub fn take_turn(&mut self) {
+        println!("The {} growls", self.get_name());
+    }
 }
 
 impl<'a> Position for Unit<'a> {
