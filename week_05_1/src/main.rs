@@ -213,7 +213,7 @@ fn main() {
                     let mut enemy = npcs.pop_front().expect("Failed to deque NPC");
                     
                     if enemy.get_hp() > 0 {
-                        enemy.take_turn(&map, &mut npcs, &mut player);
+                        enemy.take_turn(&map, &npcs, &mut player);
 
                         if player.get_hp() == 0 {
                             println!("You died!");

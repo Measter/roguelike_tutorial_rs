@@ -4,6 +4,7 @@ use tcod::pathfinding::AStar;
 use traits::{Renderable, Movable, Position};
 use Direction;
 use point::Point;
+use map;
 use map::Map;
 use unit_type::UnitType;
 
@@ -47,18 +48,14 @@ impl<'a> Unit<'a> {
         self.cur_hp
     }
 
-    fn get_step_towards(&mut self, map: &Map, npcs: &mut &VecDeque<Unit<'a>>, target: Point<i16>) -> Point<i16> {
+    fn get_step_towards(&mut self, map: &Map, npcs: &VecDeque<Unit<'a>>, target: Point<i16>) -> Point<i16> {
         // We could (probably should) cache this, but with so few units in view 
         // at any one time, we'll just re-calculate every turn.
         let mut path_map = map.get_pathfinding_map();
 
         for npc in npcs.iter() {
-            if npc == self {
-                continue;
-            }
-
             let pos = npc.get_position();
-            path_map.set(pos.x as i32, pos.y as i32, false, npc.is_blocking());
+            path_map.set(pos.x as i32, pos.y as i32, true, !npc.is_blocking());
         }
 
         let mut path = AStar::new_from_map(path_map, 0.0);
@@ -66,7 +63,9 @@ impl<'a> Unit<'a> {
         path.find((cur_pos.x as i32, cur_pos.y as i32), (target.x as i32, target.y as i32));
 
         // Path length check is to stop the AI from walking way around the map.
+        println!("Is Empty: {}, Length: {}", path.is_empty(), path.len());
         if !path.is_empty() && path.len() < 25 {
+            println!("AStar");
             let (x, y) = path.walk_one_step(true).expect("Pathfinding failed.");
             Point{ x: x as i16, y: y as i16}
         } else {
@@ -82,14 +81,16 @@ impl<'a> Unit<'a> {
         }
     }
 
-    pub fn take_turn(&mut self, map: &Map, mut npcs: &VecDeque<Unit<'a>>, player: &mut Unit) {
+    pub fn take_turn(&mut self, map: &Map, npcs: &VecDeque<Unit<'a>>, player: &mut Unit) {
         if !map.point_in_fov(self.get_position()) {
             return;
         }
 
         if (self.get_position() - player.get_position()).radius() >= 2.0 {
-            let new_pos = self.get_step_towards(map, &mut npcs, player.get_position());
-            self.move_to(new_pos);
+            let new_pos = self.get_step_towards(map, &npcs, player.get_position());
+            if map.can_move_to(new_pos) == map::CanMoveResponse::Open {
+                self.move_to(new_pos);
+            }
         } else if player.get_hp() > 0 {
             self.attack(player);
         }
