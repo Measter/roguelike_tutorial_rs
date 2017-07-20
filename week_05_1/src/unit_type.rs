@@ -11,7 +11,7 @@ use std::path::Path;
 
 const ERR_UNIT_LOAD: &str = "Unable to load unit type data.";
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct UnitType {
     name: String,
     glyph: char,

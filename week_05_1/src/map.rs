@@ -1,6 +1,6 @@
 use std;
 use std::ops::Range;
-use std::collections::HashSet;
+use std::collections::{HashSet, VecDeque};
 
 use rand;
 use rand::Rng;
@@ -146,7 +146,7 @@ pub struct Map {
 
 // Init and building.
 impl Map {
-    pub fn init<'a>(unit_types: &'a UnitTypeLists) -> (Map, Vec<Unit<'a>>, Point<i16>) {
+    pub fn init<'a>(unit_types: &'a UnitTypeLists) -> (Map, VecDeque<Unit<'a>>, Point<i16>) {
         let mut rng = rand::thread_rng();
 
         let map_width = rng.gen_range(MAP_MIN_WIDTH, MAP_MAX_WIDTH);
@@ -167,7 +167,7 @@ impl Map {
             fov_map: tcod::map::Map::new(map_width as i32, map_height as i32),
         };
 
-        let mut npcs = vec![];
+        let mut npcs = VecDeque::new();
 
         let (rooms, player_start) = map.build_rooms(&mut rng);
         map.build_coridoors(&rooms, &mut rng);
@@ -185,7 +185,7 @@ impl Map {
 
 
 
-    fn place_npcs<'a>(&mut self, room: &Rectangle, units: &'a UnitTypeLists, npc_list: &mut Vec<Unit<'a>>, rng: &mut rand::ThreadRng) {
+    fn place_npcs<'a>(&mut self, room: &Rectangle, units: &'a UnitTypeLists, npc_list: &mut VecDeque<Unit<'a>>, rng: &mut rand::ThreadRng) {
         let max_monsters = rng.gen_range(0, ROOM_MAX_MONSTERS);
 
         for _ in 0..max_monsters {
@@ -193,7 +193,7 @@ impl Map {
             let monster_type = units.get_random_type(rng);
 
             let monster = Unit::new(position, monster_type);
-            npc_list.push(monster);
+            npc_list.push_back(monster);
         }
     }
 
@@ -367,7 +367,7 @@ impl Map {
     }
 
     pub fn get_pathfinding_map(&self) -> tcod::Map {
-        let path_map = tcod::Map::new(self.width as i32, self.height as i32);
+        let mut path_map = tcod::Map::new(self.width as i32, self.height as i32);
         Map::build_fov_map(&self.tile_map, &mut path_map);
         path_map
     }

@@ -23,6 +23,8 @@ mod units;
 mod unit_type;
 mod map;
 
+use std::collections::VecDeque;
+
 const SCREEN_WIDTH: u8 = 80;
 const SCREEN_HEIGHT: u8 = 50;
 const PANEL_HEIGHT: u8 = 5;
@@ -85,7 +87,7 @@ fn key_type(key: &Key) -> KeyType {
     }
 }
 
-fn render_all<'a>(root: &mut RootConsole, buffer_console: &mut Offscreen, map: &map::Map, npcs: &Vec<units::Unit<'a>>, player: &units::Unit) {
+fn render_all<'a>(root: &mut RootConsole, buffer_console: &mut Offscreen, map: &map::Map, npcs: &VecDeque<units::Unit<'a>>, player: &units::Unit) {
     buffer_console.clear();
     root.clear();
 
@@ -115,7 +117,7 @@ fn render_all<'a>(root: &mut RootConsole, buffer_console: &mut Offscreen, map: &
     root.flush();
 }
 
-fn handle_input<'a>(root: &mut RootConsole, cur_game_state: GameState, map: &map::Map, npcs: &mut Vec<units::Unit<'a>>, player: &mut units::Unit) -> (PlayerAction, GameState) {
+fn handle_input<'a>(root: &mut RootConsole, cur_game_state: GameState, map: &map::Map, npcs: &mut VecDeque<units::Unit<'a>>, player: &mut units::Unit) -> (PlayerAction, GameState) {
     let key = root.wait_for_keypress(true);
 
     let mut player_action: PlayerAction = PlayerAction::NoTurn;
@@ -200,9 +202,16 @@ fn main() {
                 game_state = GameState::Playing;
             }
             (GameState::Playing, PlayerAction::Moved) | (GameState::Playing, PlayerAction::Turn) => {
-                for enemy in npcs.iter_mut() {
+                // We have to work around the borrow checker here.
+                // Because the compiler enforces that only a single mutable reference
+                // exists at any one time, we can't mutably borrow the NPC *and* pass
+                // in a list of all NPCs to it's take_turn.
+                // Therefore we must remove the NPC from the collection before 
+                // taking its turn.
+
+                while let Some(mut enemy) = npcs.pop_front() {
                     if enemy.get_hp() > 0 {
-                        enemy.take_turn(&map, &mut player);
+                        enemy.take_turn(&map, &mut npcs, &mut player);
 
                         if player.get_hp() == 0 {
                             println!("You died!");
@@ -211,16 +220,15 @@ fn main() {
                             game_state = GameState::Dead;
                             break;
                         }
+
+                        // Must re-add the enemy to the NPC list, or it'll be lost.
+                        npcs.push_back(enemy);
+                    } else {
+                        let corpse = item::Item::new(&enemy.get_name(), enemy.get_glyph(), tcod::colors::DARK_RED, enemy.get_position());
+
+                        map.place_item(corpse);
+                        println!("{} is dead!", enemy.get_name());
                     }
-                }
-
-                let dead_npc_indices: Vec<usize> = npcs.iter().enumerate().filter(|&(_, x)| x.get_hp() == 0).map(|(i, _)| i).collect();
-                for i in dead_npc_indices {
-                    let npc = npcs.remove(i);
-                    let corpse = item::Item::new(&npc.get_name(), npc.get_glyph(), tcod::colors::DARK_RED, npc.get_position());
-
-                    map.place_item(corpse);  
-                    println!("{} is dead!", npc.get_name());
                 }
             }
             _ => {} // Don't update AI.
