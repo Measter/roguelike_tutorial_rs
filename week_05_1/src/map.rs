@@ -83,7 +83,8 @@ impl TileType {
     }
 
     pub fn blocks_sight(self) -> bool {
-        match self {
+        // NOTE: TCod library input is whether it's transparent, not whether it blocks.
+        !match self {
             TileType::Floor => false,
             TileType::Wall => true,
         }
