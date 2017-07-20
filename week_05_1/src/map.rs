@@ -169,10 +169,6 @@ impl Map {
 
         let mut npcs = vec![];
 
-        // Set all tiles to be not walkable, not transparent.
-        // We'll be setting these in the build_rooms and build_coridoors methods.
-        map.fov_map.clear(false, false);
-
         let (rooms, player_start) = map.build_rooms(&mut rng);
         map.build_coridoors(&rooms, &mut rng);
 
@@ -181,6 +177,8 @@ impl Map {
                 map.place_npcs(&room, &unit_types, &mut npcs, &mut rng);
             }
         }
+
+        Map::build_fov_map(&map.tile_map, &mut map.fov_map);
 
         (map, npcs, player_start)
     }
@@ -282,7 +280,6 @@ impl Map {
         for y in y_r {
             let pos = Point{x:x, y:y};
             self.set_tile_type(pos, TileType::Floor)?;
-            self.fov_map.set(x as i32, y as i32, true, true);
         }
 
         Ok(())
@@ -302,7 +299,6 @@ impl Map {
         for x in x_r {
             let pos = Point{x:x, y:y};
             self.set_tile_type(pos, TileType::Floor)?;
-            self.fov_map.set(x as i32, y as i32, true, true);
         }
 
         Ok(())
@@ -313,7 +309,6 @@ impl Map {
             for x in (rect.top_left.x+1)..rect.bottom_right.x {
                 let pos = Point{x:x, y:y};
                 self.set_tile_type(pos, TileType::Floor)?;
-                self.fov_map.set(x as i32, y as i32, true, true);
             }
         }
 
@@ -362,6 +357,19 @@ impl Map {
 
     pub fn point_in_fov(&self, Point{x,y}: Point<i16>) -> bool {
         self.fov_map.is_in_fov(x as i32, y as i32)
+    }
+
+    fn build_fov_map(tiles: &Vec<Tile>, fov_map: &mut tcod::map::Map) {
+        for tile in tiles.iter() {
+            let pos = tile.get_position();
+            fov_map.set(pos.x as i32, pos.y as i32, tile.tile_type.blocks_sight(), tile.tile_type.blocks_move());
+        }
+    }
+
+    pub fn get_pathfinding_map(&self) -> tcod::Map {
+        let path_map = tcod::Map::new(self.width as i32, self.height as i32);
+        Map::build_fov_map(&self.tile_map, &mut path_map);
+        path_map
     }
 }
 
