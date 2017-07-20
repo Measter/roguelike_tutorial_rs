@@ -83,8 +83,7 @@ impl TileType {
     }
 
     pub fn blocks_sight(self) -> bool {
-        // NOTE: TCod library input is whether it's transparent, not whether it blocks.
-        !match self {
+        match self {
             TileType::Floor => false,
             TileType::Wall => true,
         }
@@ -363,7 +362,7 @@ impl Map {
     fn build_fov_map(tiles: &Vec<Tile>, fov_map: &mut tcod::map::Map) {
         for tile in tiles.iter() {
             let pos = tile.get_position();
-            fov_map.set(pos.x as i32, pos.y as i32, tile.tile_type.blocks_sight(), tile.tile_type.blocks_move());
+            fov_map.set(pos.x as i32, pos.y as i32, !tile.tile_type.blocks_sight(), !tile.tile_type.blocks_move());
         }
     }
 
