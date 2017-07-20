@@ -209,7 +209,9 @@ fn main() {
                 // Therefore we must remove the NPC from the collection before 
                 // taking its turn.
 
-                while let Some(mut enemy) = npcs.pop_front() {
+                for _ in 0..npcs.len() {
+                    let mut enemy = npcs.pop_front().expect("Failed to deque NPC");
+                    
                     if enemy.get_hp() > 0 {
                         enemy.take_turn(&map, &mut npcs, &mut player);
 
