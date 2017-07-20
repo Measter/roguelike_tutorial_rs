@@ -20,6 +20,7 @@ use point::Point;
 mod rectangle;
 mod item;
 mod units;
+mod unit_type;
 mod map;
 
 const SCREEN_WIDTH: u8 = 80;
@@ -167,10 +168,10 @@ fn main() {
     let mut buffer_console = Offscreen::new(map::MAP_MAX_WIDTH as i32, map::MAP_MAX_HEIGHT as i32);
     root.set_default_foreground(tcod::colors::WHITE);
 
-    let unit_types = units::load_unit_types();
+    let unit_types = unit_type::load_unit_types();
     let (mut map, mut npcs, start_coord) = map::Map::init(&unit_types);
 
-    let player_type = units::UnitType::new("Player", '@', tcod::colors::WHITE);
+    let player_type = unit_type::UnitType::new("Player", '@', tcod::colors::WHITE);
     let mut player = units::Unit::new(start_coord, &player_type);
 
     map.update_fov(player.get_position(), FOV_RADIUS);

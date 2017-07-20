@@ -10,7 +10,8 @@ use tcod::console::Console;
 use tcod::Color;
 
 use traits::{Position, Renderable};
-use units::{Unit, UnitTypeLists};
+use unit_type::UnitTypeLists;
+use units::Unit;
 use item::Item;
 
 use point::Point;
