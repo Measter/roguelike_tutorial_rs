@@ -48,6 +48,8 @@ impl<'a> Unit<'a> {
     }
 
     fn get_step_towards(&mut self, map: &Map, npcs: &mut &VecDeque<Unit<'a>>, target: Point<i16>) -> Point<i16> {
+        // We could (probably should) cache this, but with so few units in view 
+        // at any one time, we'll just re-calculate every turn.
         let mut path_map = map.get_pathfinding_map();
 
         for npc in npcs.iter() {
@@ -59,8 +61,6 @@ impl<'a> Unit<'a> {
             path_map.set(pos.x as i32, pos.y as i32, false, npc.is_blocking());
         }
 
-        // We could (probably should) cache this, but with so few units in view 
-        // at any one time, we'll just re-calculate every turn.
         let mut path = AStar::new_from_map(path_map, 0.0);
         let cur_pos = self.get_position();
         path.find((cur_pos.x as i32, cur_pos.y as i32), (target.x as i32, target.y as i32));
