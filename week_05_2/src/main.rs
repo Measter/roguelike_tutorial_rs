@@ -5,6 +5,8 @@ extern crate rand;
 extern crate serde_derive;
 extern crate serde_yaml;
 
+extern crate textwrap;
+
 extern crate tcod;
 use tcod::RootConsole;
 use tcod::{Console};
@@ -122,7 +124,7 @@ fn render_all<'a>(root: &mut RootConsole, buffer_console: &mut Offscreen, ui: &m
     root.flush();
 }
 
-fn handle_input<'a>(root: &mut RootConsole, cur_game_state: GameState, map: &map::Map, npcs: &mut VecDeque<units::Unit<'a>>, player: &mut units::Unit) -> (PlayerAction, GameState) {
+fn handle_input<'a>(root: &mut RootConsole, cur_game_state: GameState, map: &map::Map, ui: &mut ui::UI, npcs: &mut VecDeque<units::Unit<'a>>, player: &mut units::Unit) -> (PlayerAction, GameState) {
     let key = root.wait_for_keypress(true);
 
     let mut player_action: PlayerAction = PlayerAction::NoTurn;
@@ -136,7 +138,7 @@ fn handle_input<'a>(root: &mut RootConsole, cur_game_state: GameState, map: &map
             player_action = match map.can_move_to(new_pos) {
                 map::CanMoveResponse::Open => {
                     if let Some(enemy) = npcs.iter_mut().filter(|n| n.get_position() == new_pos).next() {
-                        player.attack(enemy);
+                        player.attack(enemy, ui);
                         PlayerAction::Turn
                     } else {
                         player.move_to(new_pos);
@@ -183,6 +185,8 @@ fn main() {
 
     let mut ui = ui::UI::new(Point{x: 0, y: PANEL_Y as i16}, SCREEN_WIDTH as i32, PANEL_HEIGHT as i32, player_type.get_max_hp() as i16);
 
+    ui.add_message("Welcome stranger! Prepare to perish in the Tombs of the Ancient Kings.", tcod::colors::RED);
+
     map.update_fov(player.get_position(), FOV_RADIUS);
 
     let mut game_state = GameState::Playing;
@@ -192,7 +196,7 @@ fn main() {
 
         render_all(&mut root, &mut buffer_console, &mut ui, &map, &npcs, &player);
 
-        let (player_action, new_game_state) = handle_input(&mut root, game_state, &map, &mut npcs, &mut player);
+        let (player_action, new_game_state) = handle_input(&mut root, game_state, &map, &mut ui, &mut npcs, &mut player);
         game_state = new_game_state;
 
         if player_action == PlayerAction::Moved {
@@ -222,10 +226,10 @@ fn main() {
                     let mut enemy = npcs.pop_front().expect("Failed to deque NPC");
                     
                     if enemy.get_hp() > 0 {
-                        enemy.take_turn(&map, &npcs, &mut player);
+                        enemy.take_turn(&map, &mut ui, &npcs, &mut player);
 
                         if player.get_hp() == 0 {
-                            println!("You died!");
+                            ui.add_message("You died!", tcod::colors::LIGHT_RED);
                             let corpse = item::Item::new(&player.get_name(), player.get_glyph(), tcod::colors::DARK_RED, player.get_position());
                             map.place_item(corpse);
                             game_state = GameState::Dead;
@@ -238,7 +242,7 @@ fn main() {
                         let corpse = item::Item::new(&enemy.get_name(), enemy.get_glyph(), tcod::colors::DARK_RED, enemy.get_position());
 
                         map.place_item(corpse);
-                        println!("{} is dead!", enemy.get_name());
+                        ui.add_message(&format!("{} is dead!", enemy.get_name()), tcod::colors::WHITE);
                     }
                 }
             }

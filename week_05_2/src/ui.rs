@@ -3,8 +3,13 @@ use tcod::{BackgroundFlag, TextAlignment};
 use tcod::console::{Console, Offscreen};
 use tcod::colors::Color;
 
-use traits::{Position, Renderable};
+use textwrap::wrap;
+
 use point::Point;
+
+use std::collections::VecDeque;
+
+const BAR_WIDTH: i16 = 20;
 
 pub struct UI {
     position: Point<i16>,
@@ -12,6 +17,7 @@ pub struct UI {
     height: i32,
     panel: Offscreen,
     bar_hp: Bar,
+    message_box: TextBox,
 }
 
 impl UI {
@@ -21,7 +27,13 @@ impl UI {
             width: panel_width,
             height: panel_height,
             panel: Offscreen::new(panel_width, panel_height),
-            bar_hp: Bar::new(Point{x: 0, y: 0}, 20, "HP", max_hp, tcod::colors::DARKER_RED, tcod::colors::LIGHT_RED)
+            bar_hp: Bar::new(Point{x: 0, y: 0}, BAR_WIDTH, "HP", max_hp, tcod::colors::DARKER_RED, tcod::colors::LIGHT_RED),
+            message_box: TextBox {
+                position: Point{x: BAR_WIDTH, y: 0},
+                lines: VecDeque::new(),
+                max_lines: panel_height as usize,
+                width: panel_width as usize - BAR_WIDTH as usize,
+            }
         }
     }
 
@@ -29,16 +41,51 @@ impl UI {
         self.bar_hp.set_value(new_val);
     }
 
+    pub fn add_message(&mut self, message: &str, color: Color) {
+        self.message_box.add_message(message, color);
+    }
+
     pub fn render<T: Console>(&mut self, cons: &mut T) {
+        self.panel.set_default_background(tcod::colors::BLACK);
+        self.panel.clear();
         self.bar_hp.render(&mut self.panel);
+        self.message_box.render(&mut self.panel);
 
         tcod::console::blit(&self.panel, (0,0), (self.width, self.height), cons, (self.position.x as i32, self.position.y as i32), 1.0, 1.0);
     }
 }
 
+pub struct TextBox {
+    position: Point<i16>,
+    lines: VecDeque<(String, Color)>,
+    max_lines: usize,
+    width: usize,
+}
+
+impl TextBox {
+    fn add_message(&mut self, message: &str, color: Color) {
+        let lines = wrap(message, self.width);
+
+        for line in lines {
+            if self.lines.len() == self.max_lines {
+                self.lines.pop_front();
+            }
+
+            self.lines.push_back((line.into(), color));
+        }
+    }
+
+    fn render<T: Console>(&self, cons: &mut T) {
+        for (i, &(ref line, col)) in self.lines.iter().enumerate() {
+            cons.set_default_foreground(col);
+            cons.print_ex(self.position.x as i32, self.position.y as i32 + i as i32, BackgroundFlag::None, TextAlignment::Left, line);
+        }
+    }
+}
+
 
 #[derive(Debug)]
-pub struct Bar {
+struct Bar {
     position: Point<i16>,
     width: i16,
     name: String,
@@ -49,7 +96,7 @@ pub struct Bar {
 }
 
 impl Bar {
-    pub fn new(pos: Point<i16>, width: i16, name: &str, max_val: i16, col_back: Color, col_bar: Color) -> Bar {
+    fn new(pos: Point<i16>, width: i16, name: &str, max_val: i16, col_back: Color, col_bar: Color) -> Bar {
         Bar {
             position: pos,
             width: width,
@@ -64,26 +111,6 @@ impl Bar {
     pub fn set_value(&mut self, new_val: i16) {
         assert!(new_val <= self.value_max);
         self.value_cur = new_val;
-    }
-}
-
-impl Position for Bar {
-    fn get_x(&self) -> i16 {
-        self.position.x
-    }
-    
-    fn get_y(&self) -> i16 {
-        self.position.y
-    }
-}
-
-impl Renderable for Bar {
-    fn get_color(&self) -> Color {
-        self.color_bar
-    }
-
-    fn get_glyph(&self) -> char {
-        '-'
     }
 
     fn render<T: Console>(&self, cons: &mut T) {

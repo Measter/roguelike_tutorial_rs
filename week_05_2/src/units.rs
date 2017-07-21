@@ -1,3 +1,4 @@
+use tcod;
 use tcod::colors::{Color};
 use tcod::pathfinding::AStar;
 
@@ -7,6 +8,7 @@ use point::Point;
 use map;
 use map::Map;
 use unit_type::UnitType;
+use ui::UI;
 
 use std::cmp::min;
 use std::collections::VecDeque;
@@ -81,7 +83,7 @@ impl<'a> Unit<'a> {
         }
     }
 
-    pub fn take_turn(&mut self, map: &Map, npcs: &VecDeque<Unit<'a>>, player: &mut Unit) {
+    pub fn take_turn(&mut self, map: &Map, ui: &mut UI, npcs: &VecDeque<Unit<'a>>, player: &mut Unit) {
         if !map.point_in_fov(self.get_position()) {
             return;
         }
@@ -92,7 +94,7 @@ impl<'a> Unit<'a> {
                 self.move_to(new_pos);
             }
         } else if player.get_hp() > 0 {
-            self.attack(player);
+            self.attack(player, ui);
         }
     }
 
@@ -106,12 +108,12 @@ impl<'a> Unit<'a> {
         }
     }
 
-    pub fn attack(&self, target: &mut Unit) -> AttackResult {
+    pub fn attack(&self, target: &mut Unit, ui: &mut UI) -> AttackResult {
         if let Some(damage) = self.unit_type.get_attack().checked_sub(target.unit_type.get_defence()) {
-            println!("{} attacks {} for {} damage.", self.get_name(), target.get_name(), damage);
+            ui.add_message(&format!("{} attacks {} for {} damage.", self.get_name(), target.get_name(), damage), tcod::colors::YELLOW);
             target.take_damage(damage)
         } else {
-            println!("{} attacks {}, but it has no effect!", self.get_name(), target.get_name());
+            ui.add_message(&format!("{} attacks {}, but it has no effect!", self.get_name(), target.get_name()), tcod::colors::WHITE);
             AttackResult::NoEffect
         }
     }
