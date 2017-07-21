@@ -1,15 +1,7 @@
 # Week 05
 
-## Week 05.1 - Going Berserk!
+## Week 05.2 - The GUI
 
-The first thing I did here was to clean up the main loop. It was getting a bit clunky, so I pulled out the rendering and input handling to their own functions. Probably a bit overdue.
+Adding the GUI was relatively easy. I decided to encapsulate it all in one object. I don't really like how I'm passing it around to the NPCs as they take their turns. Perhaps have some sort of return value for `take_turn()` that indicates what happened. That way the NPC won't need to know about the UI.
 
-When I started implementing the AI, I ran into issues with the borrow checker. The AI routine needed to borrow the map, but couldn't do so because it was already borrowed elsewhere. I ended up doing what I exected I'd need to a couple weeks ago, and now the Map no longer owns the list of NPCs.
-
-I will probably implement the A\* pathfinding for the AI after the next step. I really don't like that they can't go round walls. Even the dumbest of animals can manage that!
-
-I decided to split out the dumb items like corpses from the NPCs. It didn't make sense for them to be shared like that. Once I'd decided on that, it made less sense to implement the fighter and AI components as the tutorial did. I also decided to add the unit stats to the unit_types data file.
-
-### Update
-
-I've implemented the A\* pathing, but it does have an issue: it fails when trying to path down or left. I don't understand why it will only work when pathing up or left. If someone figures out why, and it's something I can fix, please do tell me.
+I do think I need to do a general clean up of the project. Parts of it are pretty messy, especially around the game state.
