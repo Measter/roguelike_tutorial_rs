@@ -22,12 +22,14 @@ mod item;
 mod units;
 mod unit_type;
 mod map;
+mod ui;
 
 use std::collections::VecDeque;
 
 const SCREEN_WIDTH: u8 = 80;
 const SCREEN_HEIGHT: u8 = 50;
 const PANEL_HEIGHT: u8 = 5;
+const PANEL_Y: u8 = SCREEN_HEIGHT - PANEL_HEIGHT;
 
 const FOV_RADIUS: u8 = 10;
 
@@ -87,7 +89,7 @@ fn key_type(key: &Key) -> KeyType {
     }
 }
 
-fn render_all<'a>(root: &mut RootConsole, buffer_console: &mut Offscreen, map: &map::Map, npcs: &VecDeque<units::Unit<'a>>, player: &units::Unit) {
+fn render_all<'a>(root: &mut RootConsole, buffer_console: &mut Offscreen, ui: &mut ui::UI, map: &map::Map, npcs: &VecDeque<units::Unit<'a>>, player: &units::Unit) {
     buffer_console.clear();
     root.clear();
 
@@ -114,6 +116,9 @@ fn render_all<'a>(root: &mut RootConsole, buffer_console: &mut Offscreen, map: &
     }
 
     tcod::console::blit(buffer_console, (view_port.top_left.x as i32, view_port.top_left.y as i32), (SCREEN_WIDTH as i32, (SCREEN_HEIGHT - PANEL_HEIGHT) as i32), root, (0,0), 1.0, 1.0);
+
+    ui.render(root);
+
     root.flush();
 }
 
@@ -176,12 +181,16 @@ fn main() {
     let player_type = unit_type::UnitType::new("Player", '@', tcod::colors::WHITE);
     let mut player = units::Unit::new(start_coord, &player_type);
 
+    let mut ui = ui::UI::new(Point{x: 0, y: PANEL_Y as i16}, SCREEN_WIDTH as i32, PANEL_HEIGHT as i32, player_type.get_max_hp() as i16);
+
     map.update_fov(player.get_position(), FOV_RADIUS);
 
     let mut game_state = GameState::Playing;
 
     while !root.window_closed() {
-        render_all(&mut root, &mut buffer_console, &map, &npcs, &player);
+        ui.update_hp_val(player.get_hp() as i16);
+
+        render_all(&mut root, &mut buffer_console, &mut ui, &map, &npcs, &player);
 
         let (player_action, new_game_state) = handle_input(&mut root, game_state, &map, &mut npcs, &mut player);
         game_state = new_game_state;
